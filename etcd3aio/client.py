@@ -5,17 +5,18 @@ import tempfile
 import warnings
 
 import aiofiles
+
+import grpclib.exceptions
 from grpclib.client import Channel
 from grpclib.const import Status as grpclibStatus
-import grpclib.exceptions
 
-import etcd3aio.leases as leases
-import etcd3aio.locks as locks
-import etcd3aio.watch as watch
 import etcd3aio.etcdrpc as etcdrpc
 import etcd3aio.exceptions as exceptions
-import etcd3aio.utils as utils
+import etcd3aio.leases as leases
+import etcd3aio.locks as locks
 import etcd3aio.transactions as transactions
+import etcd3aio.utils as utils
+import etcd3aio.watch as watch
 from etcd3aio.members import Member
 
 _EXCEPTIONS_BY_CODE = {
@@ -161,8 +162,7 @@ class Etcd3Client:
         self.maintenancestub = None
 
     async def open(self):
-        """Opens GRPC channel"""
-
+        """Open GRPC channel."""
         if self.channel:
             return
 
@@ -171,13 +171,13 @@ class Etcd3Client:
             self.channel = Channel(host=self.host, port=self.port, ssl=True, loop=self.loop)
 
             if all(cert_params):
-                cert_bundle_fname = tempfile.mktemp()
-                async with aiofiles.open(cert_bundle_fname, 'w') as cert_bundle:
+                ca_bundle = tempfile.mktemp()
+                async with aiofiles.open(ca_bundle, 'w') as cert_bundle:
                     for cf_path in (self.cert_cert, self.ca_cert,):
                         async with aiofiles.open(cf_path) as cf:
                             await cert_bundle.write(await cf.read())
                     await cert_bundle.flush()
-                    self.channel._ssl.load_cert_chain(cert_bundle_fname, keyfile=self.cert_key)
+                    self.channel._ssl.load_cert_chain(ca_bundle, keyfile=self.cert_key)
             else:
                 self.channel._ssl.load_cert_chain(self.ca_cert, keyfile=self.cert_key)
 

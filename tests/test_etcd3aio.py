@@ -273,7 +273,8 @@ class TestEtcd3:
                 await events_iterator.__anext__()
             except Exception as err:
                 error_raised = True
-                assert isinstance(err, etcd3aio.exceptions.RevisionCompactedError)
+                assert isinstance(err,
+                                  etcd3aio.exceptions.RevisionCompactedError)
                 compacted_revision = err.compacted_revision
 
             assert error_raised is True
@@ -304,7 +305,8 @@ class TestEtcd3:
 
         async def pass_exception_to_callback(callback):
             await asyncio.sleep(1)
-            await callback(self.MockedException(grpclib.const.Status.UNAVAILABLE))
+            ex = self.MockedException(grpclib.const.Status.UNAVAILABLE)
+            await callback(ex)
 
         task = None
 
@@ -723,11 +725,11 @@ class TestEtcd3:
     @pytest.mark.asyncio
     async def test_connection_timeout_exception_on_connection_timeout(
             self, etcd):
-        exception = self.MockedException(grpclib.const.Status.DEADLINE_EXCEEDED)
+        ex = self.MockedException(grpclib.const.Status.DEADLINE_EXCEEDED)
 
         class MockKvstub:
             async def Range(self, *args, **kwargs):
-                raise exception
+                raise ex
 
         etcd.kvstub = MockKvstub()
 
@@ -963,7 +965,9 @@ class TestClient(object):
         try:
             yield
         finally:
-            subprocess.call(['etcdctl', '-w', 'json', '--user', 'root:pwd', 'auth', 'disable'])
+            subprocess.call(['etcdctl',
+                             '-w', 'json', '--user', 'root:pwd',
+                             'auth', 'disable'])
             subprocess.call(['etcdctl', 'user', 'delete', 'root'])
             subprocess.call(['etcdctl', 'role', 'delete', 'root'])
 

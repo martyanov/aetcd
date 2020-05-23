@@ -99,12 +99,14 @@ class Watcher(object):
             await self._cancel_no_lock(watch_id)
 
     async def _run_sender(self):
-        async with self._watch_stub.Watch.open(timeout=self.timeout, metadata=self._metadata) as stream:
+        async with self._watch_stub.Watch.open(timeout=self.timeout,
+                                               metadata=self._metadata) as stream:
             while request := await self._request_queue.get():
                 try:
                     await stream.send_message(request)
                     if self._receiver_task is None:
-                        self._receiver_task = asyncio.get_running_loop().create_task(self._run_receiver(stream))
+                        self._receiver_task = asyncio.get_running_loop().create_task(
+                            self._run_receiver(stream))
                 except grpclib.exceptions.StreamTerminatedError as err:
                     await self._handle_steam_termination(err)
 
@@ -178,7 +180,8 @@ class Watcher(object):
         rq = etcdrpc.WatchRequest(cancel_request=cancel_watch)
         await self._request_queue.put(rq)
 
-    def _create_watch_request(self, key, range_end=None, start_revision=None,
+    @staticmethod
+    def _create_watch_request(key, range_end=None, start_revision=None,
                               progress_notify=False, filters=None,
                               prev_kv=False):
         create_watch = etcdrpc.WatchCreateRequest()
