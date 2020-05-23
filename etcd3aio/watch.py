@@ -54,9 +54,7 @@ class Watcher(object):
                                         filters=filters, prev_kv=prev_kv)
 
         async with self._lock:
-            # Start the callback thread if it is not yet running.
-            if not self._sender_task:
-                self._sender_task = asyncio.get_running_loop().create_task(self._run_sender())
+            await self._setup_stream()
 
             # Only one create watch request can be pending at a time, so if
             # there one already, then wait for it to complete first.
@@ -98,19 +96,38 @@ class Watcher(object):
 
             await self._cancel_no_lock(watch_id)
 
-    async def _run_sender(self):
-        async with self._watch_stub.Watch.open(timeout=self.timeout,
-                                               metadata=self._metadata) as stream:
-            while request := await self._request_queue.get():
-                try:
-                    await stream.send_message(request)
-                    if self._receiver_task is None:
-                        self._receiver_task = asyncio.get_running_loop().create_task(
-                            self._run_receiver(stream))
-                except grpclib.exceptions.StreamTerminatedError as err:
-                    await self._handle_steam_termination(err)
+    async def _setup_stream(self):
+        if self._sender_task:
+            return
 
-            stream.end()
+        async def sender_task(timeout, metadata, run_receiver_fn):
+            async with self._watch_stub.Watch.open(timeout=timeout, metadata=metadata) as stream:
+                while request := await self._request_queue.get():
+                    try:
+                        await stream.send_message(request)
+                        await run_receiver_fn(stream)
+                    except grpclib.exceptions.StreamTerminatedError as err:
+                        await self._handle_steam_termination(err)
+
+                stream.end()
+
+        self._sender_task = asyncio.get_running_loop().create_task(
+            sender_task(self.timeout, self._metadata, self._run_receiver)
+        )
+
+    async def _run_receiver(self, stream):
+        if self._receiver_task:
+            return
+
+        async def receiver_task():
+            nonlocal stream
+            try:
+                while response := await stream.recv_message():
+                    await self._handle_response(response)
+            except grpclib.exceptions.StreamTerminatedError as err:
+                await self._handle_steam_termination(err)
+
+        self._receiver_task = asyncio.get_running_loop().create_task(receiver_task())
 
     async def _handle_steam_termination(self, err):
         async with self._lock:
@@ -129,12 +146,11 @@ class Watcher(object):
         for callback in callbacks.values():
             await _safe_callback(callback, err)
 
-    async def _run_receiver(self, stream):
-        try:
-            while response := await stream.recv_message():
-                await self._handle_response(response)
-        except grpclib.exceptions.StreamTerminatedError as err:
-            await self._handle_steam_termination(err)
+    def close(self):
+        """Close the streams for sending and receiving watch events."""
+        for t in (self._receiver_task, self._sender_task,):
+            if t:
+                t.cancel()
 
     async def _handle_response(self, rs):
         async with self._lock:

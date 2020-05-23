@@ -206,6 +206,7 @@ class Etcd3Client:
     async def close(self):
         """Call the GRPC channel close semantics."""
         if self.channel:
+            self.watcher.close()
             self.channel.close()
             self._init_channel_attrs()
 
