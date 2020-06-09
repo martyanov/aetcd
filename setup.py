@@ -8,6 +8,9 @@ from setuptools import setup
 with open('README.md') as readme_file:
     readme = readme_file.read()
 
+with open('HISTORY.rst') as history_file:
+    history = history_file.read()
+
 
 def load_reqs(filename):
     with open(filename) as reqs_file:
@@ -24,7 +27,7 @@ setup(
     name='etcd3aio',
     version='0.1.0',
     description="Python client for the etcd3 API for asyncio",
-    long_description=readme,
+    long_description=readme + '\n\n' + history,
     author="Aleksei Gusev",
     author_email='aleksei.gusev@gmail.com',
     url='https://github.com/hron/etcd3aio',
