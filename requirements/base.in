@@ -1,4 +1,0 @@
-aiofiles
-grpclib
-protobuf==3.6.1
-tenacity==5.0.2
