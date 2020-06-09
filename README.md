@@ -1,4 +1,4 @@
-# etcd client for asyncio
+# aetcd3
 
 ![](https://github.com/hron/etcd3aio/workflows/Build/badge.svg)
 
@@ -72,6 +72,10 @@ def watch_callback(event):
     print(event)
 ```
 
-## Thanks
+## Acknowledgements
 
-This project is a fork of amazing work of (python-etcd3)[https://github.com/kragniz/python-etcd3]
+This project is a fork of [etcd3aio](https://github.com/hron/etcd3aio), which itself is a fork
+of [python-etcd3](https://github.com/kragniz/python-etcd3). `python-etcd3` was originally written
+by [kragniz](https://github.com/kragniz). `asyncio` suppport was contributed by [hron](https://github.com/hron)
+and based on the previous work by [gjcarneiro](https://github.com/gjcarneiro). Kudos to all the people involved
+in the projects.
