@@ -49,7 +49,6 @@ setuptools.setup(
         'dev': [
             'PyYAML==5.3.1',
             'Sphinx==3.1.0',
-            'bumpversion==0.5.3',
             'coverage==5.1',
             'flake8-docstrings==1.3.0',
             'flake8-import-order==0.18.1',
