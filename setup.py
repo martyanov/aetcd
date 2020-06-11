@@ -8,7 +8,7 @@ def _get_long_description():
 
 setuptools.setup(
     name='aetcd3',
-    version='0.1.0a1',
+    use_scm_version=True,
     description='Python asyncio based client for the etcd API v3',
     long_description=_get_long_description(),
     long_description_content_type='text/markdown',
@@ -39,6 +39,9 @@ setuptools.setup(
         'Repository': 'https://github.com/martyanov/aetcd3',
     },
     python_requires='>=3.8,<4.0',
+    setup_requires=[
+        'setuptools_scm==4.1.2',
+    ],
     install_requires=[
         'aiofiles>=0.5,<0.6',
         'grpclib>=0.3,<0.4',
