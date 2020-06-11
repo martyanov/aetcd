@@ -2,7 +2,7 @@ import setuptools
 
 
 def _get_long_description():
-    with open('README.md') as readme_file:
+    with open('README.rst') as readme_file:
         return readme_file.read()
 
 
@@ -11,7 +11,7 @@ setuptools.setup(
     use_scm_version=True,
     description='Python asyncio based client for the etcd API v3',
     long_description=_get_long_description(),
-    long_description_content_type='text/markdown',
+    long_description_content_type='text/x-rst',
     author='Andrey Martyanov',
     author_email='andrey@martyanov.com',
     url='https://github.com/martyanov/aetcd3',
