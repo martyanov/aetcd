@@ -48,13 +48,15 @@ setuptools.setup(
     extras_require={
         'dev': [
             'PyYAML==5.3.1',
-            'Sphinx==3.1.0',
             'coverage==5.1',
             'flake8-docstrings==1.3.0',
             'flake8-import-order==0.18.1',
             'flake8==3.8.3',
             'grpcio-tools==1.29.0',
             'twine==3.1.1',
+        ],
+        'doc': [
+            'Sphinx==3.1.0',
         ],
         'test': [
             'pifpaf==2.5.0',
