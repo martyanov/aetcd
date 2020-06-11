@@ -1,6 +1,18 @@
 aetcd3
 ======
 
+.. image:: https://img.shields.io/pypi/v/aetcd3.svg
+   :alt: PyPI Version
+   :target: https://pypi.python.org/pypi/aetcd3
+
+.. image:: https://img.shields.io/pypi/pyversions/aetcd3.svg
+   :alt: Supported Python Versions
+   :target: https://pypi.python.org/pypi/aetcd3
+
+.. image:: https://img.shields.io/pypi/l/aetcd3.svg
+   :alt: License
+   :target: https://pypi.python.org/pypi/aetcd3
+
 This project is based on `grpclib`_ and requires `Python >= 3.8`.
 
 * Free software: Apache Software License 2.0
