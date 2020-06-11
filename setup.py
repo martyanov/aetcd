@@ -38,7 +38,7 @@ setuptools.setup(
         'Bug Reports': 'https://github.com/martyanov/aetcd3/issues',
         'Repository': 'https://github.com/martyanov/aetcd3',
     },
-    python_requires='>=3.7,<4.0',
+    python_requires='>=3.8,<4.0',
     install_requires=[
         'aiofiles>=0.5,<0.6',
         'grpclib>=0.3,<0.4',
