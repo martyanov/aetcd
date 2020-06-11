@@ -1,9 +1,3 @@
-"""
-Tests for `etcd3` module with the asyncio backend.
-
-----------------------------------
-"""
-
 import asyncio
 import base64
 import contextlib
@@ -15,10 +9,9 @@ import subprocess
 import tempfile
 import threading
 import time
+import unittest.mock
 
 import grpclib
-
-import mock
 
 import pytest
 
@@ -317,7 +310,7 @@ class TestEtcd3:
                 pass_exception_to_callback(callback))
             return 1
 
-        watcher_mock = mock.MagicMock()
+        watcher_mock = unittest.mock.MagicMock()
         watcher_mock.add_callback = add_callback_mock
         etcd.watcher = watcher_mock
 
@@ -703,7 +696,7 @@ class TestEtcd3:
     async def test_internal_exception_on_internal_error(self, etcd):
         etcd.open()
         exception = self.MockedException(grpclib.const.Status.INTERNAL)
-        kv_mock = mock.MagicMock()
+        kv_mock = unittest.mock.MagicMock()
         kv_mock.Range.side_effect = exception
         etcd.kvstub = kv_mock
 
@@ -715,7 +708,7 @@ class TestEtcd3:
             self, etcd):
         etcd.open()
         exception = self.MockedException(grpclib.const.Status.UNAVAILABLE)
-        kv_mock = mock.MagicMock()
+        kv_mock = unittest.mock.MagicMock()
         kv_mock.Range.side_effect = exception
         etcd.kvstub = kv_mock
 
@@ -739,7 +732,7 @@ class TestEtcd3:
     @pytest.mark.asyncio
     async def test_grpc_exception_on_unknown_code(self, etcd):
         exception = self.MockedException(grpclib.const.Status.DATA_LOSS)
-        kv_mock = mock.MagicMock()
+        kv_mock = unittest.mock.MagicMock()
         kv_mock.Range.side_effect = exception
         etcd.kvstub = kv_mock
 
