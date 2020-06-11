@@ -1,11 +1,11 @@
 aetcd3
 ======
 
-.. image:: https://img.shields.io/badge/martyanov%2Faetcd3-informational.svg?logo=github
-   :alt: aetcd3
-   :target: https://github.com/martyanov/aetcd3
+.. image:: https://travis-ci.org/martyanov/aetcd3.svg?branch=master
+   :alt: Build Status
+   :target: https://travis-ci.org/martyanov/aetcd3
 
-.. image:: https://img.shields.io/badge/docs-aetcd3.rtfd.io-blue.svg
+.. image:: https://img.shields.io/badge/docs-aetcd3.rtfd.io-green.svg
    :alt: Documentation
    :target: https://aetcd3.readthedocs.io
 
@@ -17,9 +17,9 @@ aetcd3
    :alt: Supported Python Versions
    :target: https://pypi.python.org/pypi/aetcd3
 
-.. image:: https://img.shields.io/pypi/l/aetcd3.svg
+.. image:: https://img.shields.io/github/license/martyanov/aetcd3
    :alt: License
-   :target: https://pypi.python.org/pypi/aetcd3
+   :target: https://github.com/martyanov/aetcd3/blob/master/LICENSE
 
 Installation
 ~~~~~~~~~~~~
