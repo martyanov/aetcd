@@ -1,6 +1,14 @@
 aetcd3
 ======
 
+.. image:: https://img.shields.io/badge/martyanov%2Faetcd3-informational.svg?logo=github
+   :alt: aetcd3
+   :target: https://github.com/martyanov/aetcd3
+
+.. image:: https://img.shields.io/badge/docs-aetcd3.rtfd.io-blue.svg
+   :alt: Documentation
+   :target: https://aetcd3.readthedocs.io
+
 .. image:: https://img.shields.io/pypi/v/aetcd3.svg
    :alt: PyPI Version
    :target: https://pypi.python.org/pypi/aetcd3
@@ -12,12 +20,6 @@ aetcd3
 .. image:: https://img.shields.io/pypi/l/aetcd3.svg
    :alt: License
    :target: https://pypi.python.org/pypi/aetcd3
-
-This project is based on `grpclib`_ and requires `Python >= 3.8`.
-
-* Free software: Apache Software License 2.0
-* Documentation: https://aetcd3.readthedocs.io
-
 
 Installation
 ~~~~~~~~~~~~
