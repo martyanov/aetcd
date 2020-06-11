@@ -46,11 +46,11 @@ setuptools.setup(
         'aiofiles>=0.5,<0.6',
         'grpclib>=0.3,<0.4',
         'protobuf>=3,<4',
-        'tenacity>=5,<6',
+        'tenacity>=6,<7',
     ],
     extras_require={
         'dev': [
-            'flake8-docstrings==1.3.0',
+            'flake8-docstrings==1.5.0',
             'flake8-import-order==0.18.1',
             'flake8==3.8.3',
             'grpcio-tools==1.29.0',
@@ -61,7 +61,7 @@ setuptools.setup(
         ],
         'test': [
             'pifpaf==2.5.0',
-            'pytest-asyncio==0.10.0',
+            'pytest-asyncio==0.12.0',
             'pytest-cov==2.9.0',
             'pytest==5.4.3',
             'tox==3.15.2',
