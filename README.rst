@@ -1,9 +1,9 @@
 aetcd3
 ======
 
-.. image:: https://travis-ci.org/martyanov/aetcd3.svg?branch=master
+.. image:: https://github.com/martyanov/aetcd3/workflows/build/badge.svg?branch=master
    :alt: Build Status
-   :target: https://travis-ci.org/martyanov/aetcd3
+   :target: https://github.com/martyanov/aetcd3/actions
 
 .. image:: https://img.shields.io/badge/docs-aetcd3.rtfd.io-green.svg
    :alt: Documentation
