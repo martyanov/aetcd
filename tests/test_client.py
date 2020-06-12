@@ -10,13 +10,11 @@ import tempfile
 import threading
 import time
 import unittest.mock
+import urllib.parse
 
 import grpclib
 
 import pytest
-
-import six
-from six.moves.urllib.parse import urlparse
 
 from tenacity import retry, stop_after_attempt, wait_fixed
 
@@ -24,14 +22,10 @@ import etcd3aio.etcdrpc as etcdrpc
 import etcd3aio.exceptions
 import etcd3aio.utils as utils
 
+
 etcd_version = os.environ.get('TEST_ETCD_VERSION', 'v3.2.8')
 
 os.environ['ETCDCTL_API'] = '3'
-
-if six.PY2:
-    int_types = (int, long)
-else:
-    int_types = (int,)
 
 
 def etcdctl(*args):
@@ -67,7 +61,7 @@ class TestEtcd3:
         endpoint = os.environ.get('PYTHON_ETCD_HTTP_URL')
         timeout = 5
         if endpoint:
-            url = urlparse(endpoint)
+            url = urllib.parse.urlparse(endpoint)
             with etcd3aio.client(host=url.hostname,
                                  port=url.port,
                                  timeout=timeout,
@@ -553,8 +547,8 @@ class TestEtcd3:
     async def test_lease_grant(self, etcd):
         lease = await etcd.lease(1)
 
-        assert isinstance(lease.ttl, int_types)
-        assert isinstance(lease.id, int_types)
+        assert isinstance(lease.ttl, int)
+        assert isinstance(lease.id, int)
 
     @pytest.mark.asyncio
     async def test_lease_revoke(self, etcd):
@@ -602,7 +596,7 @@ class TestEtcd3:
                 assert peer_url.startswith('http://')
             for client_url in member.client_urls:
                 assert client_url.startswith('http://')
-            assert isinstance(member.id, int_types) is True
+            assert isinstance(member.id, int) is True
 
     @pytest.mark.asyncio
     async def test_lock_acquire(self, etcd):
