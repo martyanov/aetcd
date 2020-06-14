@@ -10,14 +10,14 @@ import grpclib.exceptions
 from grpclib.client import Channel
 from grpclib.const import Status as grpclibStatus
 
-import etcd3aio.etcdrpc as etcdrpc
-import etcd3aio.exceptions as exceptions
-import etcd3aio.leases as leases
-import etcd3aio.locks as locks
-import etcd3aio.transactions as transactions
-import etcd3aio.utils as utils
-import etcd3aio.watch as watch
-from etcd3aio.members import Member
+from . import etcdrpc
+from . import exceptions
+from . import leases
+from . import locks
+from . import members
+from . import transactions
+from . import utils
+from . import watch
 
 _EXCEPTIONS_BY_CODE = {
     grpclibStatus.INTERNAL: exceptions.InternalServerError,
@@ -227,8 +227,8 @@ class Etcd3Client:
 
         .. code-block:: python
 
-            >>> import etcd3aio
-            >>> etcd = etcd3aio.client()
+            >>> import aetcd3
+            >>> etcd = aetcd3.client()
             >>> etcd.get('/thing/key')
             'hello world'
 
@@ -354,8 +354,8 @@ class Etcd3Client:
 
         .. code-block:: python
 
-            >>> import etcd3aio
-            >>> etcd = etcd3aio.client()
+            >>> import aetcd3
+            >>> etcd = aetcd3.client()
             >>> etcd.put('/thing/key', 'hello world')
 
         :param key: key in etcd to set
@@ -732,7 +732,7 @@ class Etcd3Client:
         Add a member into the cluster.
 
         :returns: new member
-        :rtype: :class:`.Member`
+        :rtype: :class:`members.Member`
         """
         member_add_request = etcdrpc.MemberAddRequest(peerURLs=urls)
 
@@ -743,11 +743,13 @@ class Etcd3Client:
         )
 
         member = member_add_response.member
-        return Member(member.ID,
-                      member.name,
-                      member.peerURLs,
-                      member.clientURLs,
-                      etcd_client=self)
+        return members.Member(
+            member.ID,
+            member.name,
+            member.peerURLs,
+            member.clientURLs,
+            etcd_client=self,
+        )
 
     @_handle_errors
     @_ensure_channel
@@ -787,7 +789,7 @@ class Etcd3Client:
         """
         List of all members associated with the cluster.
 
-        :type: sequence of :class:`.Member`
+        :type: sequence of :class:`members.Member`
 
         """
         member_list_request = etcdrpc.MemberListRequest()
@@ -798,11 +800,13 @@ class Etcd3Client:
         )
 
         for member in member_list_response.members:
-            yield Member(member.ID,
-                         member.name,
-                         member.peerURLs,
-                         member.clientURLs,
-                         etcd_client=self)
+            yield members.Member(
+                member.ID,
+                member.name,
+                member.peerURLs,
+                member.clientURLs,
+                etcd_client=self,
+            )
 
     @_handle_errors
     @_ensure_channel

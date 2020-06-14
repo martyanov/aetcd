@@ -18,9 +18,9 @@ import pytest
 
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-import etcd3aio.etcdrpc as etcdrpc
-import etcd3aio.exceptions
-import etcd3aio.utils as utils
+import aetcd3.etcdrpc as etcdrpc
+import aetcd3.exceptions
+import aetcd3.utils as utils
 
 
 etcd_version = os.environ.get('TEST_ETCD_VERSION', 'v3.2.8')
@@ -62,13 +62,13 @@ class TestEtcd3:
         timeout = 5
         if endpoint:
             url = urllib.parse.urlparse(endpoint)
-            with etcd3aio.client(host=url.hostname,
+            with aetcd3.client(host=url.hostname,
                                  port=url.port,
                                  timeout=timeout,
                                  loop=event_loop) as client:
                 yield client
         else:
-            async with etcd3aio.client(loop=event_loop) as client:
+            async with aetcd3.client(loop=event_loop) as client:
                 yield client
 
         @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
@@ -261,7 +261,7 @@ class TestEtcd3:
             except Exception as err:
                 error_raised = True
                 assert isinstance(err,
-                                  etcd3aio.exceptions.RevisionCompactedError)
+                                  aetcd3.exceptions.RevisionCompactedError)
                 compacted_revision = err.compacted_revision
 
             assert error_raised is True
@@ -310,7 +310,7 @@ class TestEtcd3:
 
         events_iterator, cancel = await etcd.watch('foo')
 
-        with pytest.raises(etcd3aio.exceptions.ConnectionFailedError):
+        with pytest.raises(aetcd3.exceptions.ConnectionFailedError):
             async for _ in events_iterator:
                 _
 
@@ -318,7 +318,7 @@ class TestEtcd3:
 
     @pytest.mark.asyncio
     async def test_watch_timeout_on_establishment(self, event_loop):
-        async with etcd3aio.client(timeout=3, loop=event_loop) as foo_etcd:
+        async with aetcd3.client(timeout=3, loop=event_loop) as foo_etcd:
             @contextlib.asynccontextmanager
             async def slow_watch_mock(*args, **kwargs):
                 await asyncio.sleep(40)
@@ -326,7 +326,7 @@ class TestEtcd3:
 
             foo_etcd.watcher._watch_stub.Watch.open = slow_watch_mock  # noqa
 
-            with pytest.raises(etcd3aio.exceptions.WatchTimedOut):
+            with pytest.raises(aetcd3.exceptions.WatchTimedOut):
                 events_iterator, cancel = await foo_etcd.watch('foo')
                 async for _ in events_iterator:
                     pass
@@ -377,17 +377,17 @@ class TestEtcd3:
     async def test_sequential_watch_prefix_once(self, etcd):
         try:
             await etcd.watch_prefix_once('/doot/', 1)
-        except etcd3aio.exceptions.WatchTimedOut:
+        except aetcd3.exceptions.WatchTimedOut:
             print("timeout1")
             pass
         try:
             await etcd.watch_prefix_once('/doot/', 1)
-        except etcd3aio.exceptions.WatchTimedOut:
+        except aetcd3.exceptions.WatchTimedOut:
             print("timeout2")
             pass
         try:
             await etcd.watch_prefix_once('/doot/', 1)
-        except etcd3aio.exceptions.WatchTimedOut:
+        except aetcd3.exceptions.WatchTimedOut:
             print("timeout3")
             pass
 
@@ -694,7 +694,7 @@ class TestEtcd3:
         kv_mock.Range.side_effect = exception
         etcd.kvstub = kv_mock
 
-        with pytest.raises(etcd3aio.exceptions.InternalServerError):
+        with pytest.raises(aetcd3.exceptions.InternalServerError):
             await etcd.get("foo")
 
     @pytest.mark.asyncio
@@ -706,7 +706,7 @@ class TestEtcd3:
         kv_mock.Range.side_effect = exception
         etcd.kvstub = kv_mock
 
-        with pytest.raises(etcd3aio.exceptions.ConnectionFailedError):
+        with pytest.raises(aetcd3.exceptions.ConnectionFailedError):
             await etcd.get("foo")
 
     @pytest.mark.asyncio
@@ -720,7 +720,7 @@ class TestEtcd3:
 
         etcd.kvstub = MockKvstub()
 
-        with pytest.raises(etcd3aio.exceptions.ConnectionTimeoutError):
+        with pytest.raises(aetcd3.exceptions.ConnectionTimeoutError):
             await etcd.get("foo")
 
     @pytest.mark.asyncio
@@ -741,7 +741,7 @@ class TestEtcd3:
     async def test_status_member(self, etcd):
         status = await etcd.status()
 
-        assert isinstance(status.leader, etcd3aio.members.Member) is True
+        assert isinstance(status.leader, aetcd3.members.Member) is True
         assert status.leader.id in [m.id async for m in etcd.members()]
 
     @pytest.mark.asyncio
@@ -760,7 +760,7 @@ class TestEtcd3:
 class TestAlarms(object):
     @pytest.fixture
     async def etcd(self, event_loop):
-        etcd = etcd3aio.client(loop=event_loop)
+        etcd = aetcd3.client(loop=event_loop)
         yield etcd
         await etcd.disarm_alarm()
         async for m in etcd.members():
@@ -814,19 +814,19 @@ class TestAlarms(object):
 
 class TestUtils(object):
     def test_prefix_range_end(self):
-        assert etcd3aio.utils.prefix_range_end(b'foo') == b'fop'
+        assert aetcd3.utils.prefix_range_end(b'foo') == b'fop'
 
     def test_to_bytes(self):
-        assert isinstance(etcd3aio.utils.to_bytes(b'doot'), bytes) is True
-        assert isinstance(etcd3aio.utils.to_bytes('doot'), bytes) is True
-        assert etcd3aio.utils.to_bytes(b'doot') == b'doot'
-        assert etcd3aio.utils.to_bytes('doot') == b'doot'
+        assert isinstance(aetcd3.utils.to_bytes(b'doot'), bytes) is True
+        assert isinstance(aetcd3.utils.to_bytes('doot'), bytes) is True
+        assert aetcd3.utils.to_bytes(b'doot') == b'doot'
+        assert aetcd3.utils.to_bytes('doot') == b'doot'
 
 
 class TestClient(object):
     @pytest.fixture
     def etcd(self, event_loop):
-        yield etcd3aio.client(loop=event_loop)
+        yield aetcd3.client(loop=event_loop)
 
     def test_sort_target(self, etcd):
         key = 'key'.encode('utf-8')
@@ -863,7 +863,7 @@ class TestClient(object):
 
     @pytest.mark.asyncio
     async def test_secure_channel(self, event_loop):
-        client = etcd3aio.client(
+        client = aetcd3.client(
             ca_cert="tests/ca.crt",
             cert_key="tests/client.key",
             cert_cert="tests/client.crt",
@@ -880,7 +880,7 @@ class TestClient(object):
                 with open(f'tests/{fname}', 'r+b') as f:
                     certfile_bundle.write(f.read())
             certfile_bundle.flush()
-            client = etcd3aio.client(
+            client = aetcd3.client(
                 ca_cert=certfile_bundle.name,
                 cert_key=None,
                 cert_cert=None,
@@ -892,14 +892,14 @@ class TestClient(object):
 
     def test_secure_channel_ca_cert_and_key_raise_exception(self, event_loop):
         with pytest.raises(ValueError):
-            etcd3aio.client(
+            aetcd3.client(
                 ca_cert='tests/ca.crt',
                 cert_key='tests/client.crt',
                 cert_cert=None,
                 loop=event_loop)
 
         with pytest.raises(ValueError):
-            etcd3aio.client(
+            aetcd3.client(
                 ca_cert='tests/ca.crt',
                 cert_key=None,
                 cert_cert='tests/client.crt',
@@ -916,7 +916,7 @@ class TestClient(object):
 
     @pytest.mark.asyncio
     async def test_channel_with_no_cert(self, event_loop):
-        client = etcd3aio.client(
+        client = aetcd3.client(
             ca_cert=None,
             cert_key=None,
             cert_cert=None,
@@ -930,7 +930,7 @@ class TestClient(object):
     async def test_user_pwd_auth(self, event_loop):
         with self._enabled_auth_in_etcd():
             # Create a client using username and password auth
-            client = etcd3aio.client(
+            client = aetcd3.client(
                 user='root',
                 password='pwd',
                 loop=event_loop
@@ -939,10 +939,10 @@ class TestClient(object):
 
     def test_user_or_pwd_auth_raises_exception(self, event_loop):
         with pytest.raises(Exception, match='both user and password'):
-            etcd3aio.client(user='usr', loop=event_loop)
+            aetcd3.client(user='usr', loop=event_loop)
 
         with pytest.raises(Exception, match='both user and password'):
-            etcd3aio.client(password='pwd', loop=event_loop)
+            aetcd3.client(password='pwd', loop=event_loop)
 
     @staticmethod
     @contextlib.contextmanager
@@ -963,7 +963,7 @@ class TestCompares(object):
 
     def test_compare_version(self):
         key = 'key'
-        tx = etcd3aio.Transactions()
+        tx = aetcd3.Transactions()
 
         version_compare = tx.version(key) == 1
         assert version_compare.op == etcdrpc.Compare.EQUAL
@@ -981,7 +981,7 @@ class TestCompares(object):
 
     def test_compare_value(self):
         key = 'key'
-        tx = etcd3aio.Transactions()
+        tx = aetcd3.Transactions()
 
         value_compare = tx.value(key) == 'b'
         assert value_compare.op == etcdrpc.Compare.EQUAL
@@ -998,7 +998,7 @@ class TestCompares(object):
 
     def test_compare_mod(self):
         key = 'key'
-        tx = etcd3aio.Transactions()
+        tx = aetcd3.Transactions()
 
         mod_compare = tx.mod(key) == -100
         assert mod_compare.op == etcdrpc.Compare.EQUAL
@@ -1015,7 +1015,7 @@ class TestCompares(object):
 
     def test_compare_create(self):
         key = 'key'
-        tx = etcd3aio.Transactions()
+        tx = aetcd3.Transactions()
 
         create_compare = tx.create(key) == 10
         assert create_compare.op == etcdrpc.Compare.EQUAL

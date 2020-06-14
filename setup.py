@@ -16,12 +16,12 @@ setuptools.setup(
     author_email='andrey@martyanov.com',
     url='https://github.com/martyanov/aetcd3',
     packages=[
-        'etcd3aio',
-        'etcd3aio.etcdrpc',
+        'aetcd3',
+        'aetcd3.etcdrpc',
     ],
     package_dir={
-        'etcd3aio': 'etcd3aio',
-        'etcd3aio.etcdrpc': 'etcd3aio/etcdrpc',
+        'aetcd3': 'aetcd3',
+        'aetcd3.etcdrpc': 'aetcd3/etcdrpc',
     },
     include_package_data=True,
     license='Apache Software License 2.0',

@@ -18,7 +18,7 @@ deps:
 	python3 -m pip install -e .[dev,doc,test]
 
 lint:
-	python3 -m flake8 etcd3aio tests
+	python3 -m flake8 aetcd3 tests
 
 test:
 	python3 -m pytest
@@ -37,20 +37,20 @@ outdated:
 	python3 -m pip list --outdated --format=columns
 
 genproto:
-	sed -i -e '/gogoproto/d' etcd3aio/proto/rpc.proto
-	sed -i -e 's/etcd\/mvcc\/mvccpb\/kv.proto/kv.proto/g' etcd3aio/proto/rpc.proto
-	sed -i -e 's/etcd\/auth\/authpb\/auth.proto/auth.proto/g' etcd3aio/proto/rpc.proto
-	sed -i -e '/google\/api\/annotations.proto/d' etcd3aio/proto/rpc.proto
-	sed -i -e '/option (google.api.http)/,+3d' etcd3aio/proto/rpc.proto
-	python -m grpc_tools.protoc -Ietcd3aio/proto \
-        --python_out=etcd3aio/etcdrpc/ \
-        --python_grpc_out=etcd3aio/etcdrpc/ \
-        etcd3aio/proto/rpc.proto etcd3aio/proto/auth.proto etcd3aio/proto/kv.proto
-	sed -i -e 's/import auth_pb2/from etcd3aio.etcdrpc import auth_pb2/g' etcd3aio/etcdrpc/rpc_pb2.py
-	sed -i -e 's/import kv_pb2/from etcd3aio.etcdrpc import kv_pb2/g' etcd3aio/etcdrpc/rpc_pb2.py
-	sed -i -e 's/import kv_pb2/from etcd3aio.etcdrpc import kv_pb2/g' etcd3aio/etcdrpc/rpc_grpc.py
-	sed -i -e 's/import auth_pb2/from etcd3aio.etcdrpc import auth_pb2/g' etcd3aio/etcdrpc/rpc_grpc.py
-	sed -i -e 's/import rpc_pb2/from etcd3aio.etcdrpc import rpc_pb2/g' etcd3aio/etcdrpc/rpc_grpc.py
+	sed -i -e '/gogoproto/d' aetcd3/proto/rpc.proto
+	sed -i -e 's/etcd\/mvcc\/mvccpb\/kv.proto/kv.proto/g' aetcd3/proto/rpc.proto
+	sed -i -e 's/etcd\/auth\/authpb\/auth.proto/auth.proto/g' aetcd3/proto/rpc.proto
+	sed -i -e '/google\/api\/annotations.proto/d' aetcd3/proto/rpc.proto
+	sed -i -e '/option (google.api.http)/,+3d' aetcd3/proto/rpc.proto
+	python -m grpc_tools.protoc -Iaetcd3/proto \
+        --python_out=aetcd3/etcdrpc/ \
+        --python_grpc_out=aetcd3/etcdrpc/ \
+        aetcd3/proto/rpc.proto aetcd3/proto/auth.proto aetcd3/proto/kv.proto
+	sed -i -e 's/import auth_pb2/from . import auth_pb2/g' aetcd3/etcdrpc/rpc_pb2.py
+	sed -i -e 's/import kv_pb2/from . import kv_pb2/g' aetcd3/etcdrpc/rpc_pb2.py
+	sed -i -e 's/import kv_pb2/from . import kv_pb2/g' aetcd3/etcdrpc/rpc_grpc.py
+	sed -i -e 's/import auth_pb2/from . import auth_pb2/g' aetcd3/etcdrpc/rpc_grpc.py
+	sed -i -e 's/import rpc_pb2/from . import rpc_pb2/g' aetcd3/etcdrpc/rpc_grpc.py
 
 clean:
 	rm -rf *.egg .eggs *.egg-info .pytest_cache .tox build dist htmlcov

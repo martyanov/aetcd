@@ -34,9 +34,9 @@ Basic usage
 
 .. code:: python
 
-    import etcd3aio
+    import aetcd3
 
-    etcd = etcd3aio.client()
+    etcd = aetcd3.client()
     await etcd.get('foo')
     await etcd.put('bar', 'doot')
     await etcd.delete('bar')
