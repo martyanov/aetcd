@@ -19,7 +19,6 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt install etcd
-          sudo systemctl stop etcd
           make deps
       - name: Run tests
         run: |
