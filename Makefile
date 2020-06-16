@@ -3,15 +3,16 @@
 
 help:
 	@echo "Please use \`$(MAKE) <target>' where <target> is one of the following:"
-	@echo "  help       - show help information"
-	@echo "  lint       - inspect project source code for errors"
-	@echo "  test       - run project tests"
-	@echo "  testreport - run project tests and open HTML coverage report"
-	@echo "  build      - build project packages"
-	@echo "  upload     - upload built packages to package repository"
-	@echo "  outdated   - list outdated project requirements"
-	@echo "  genproto   - process .proto files and generate gRPC stubs"
-	@echo "  clean      - clean up project environment and all the build artifacts"
+	@echo "  help        - show help information"
+	@echo "  lint        - inspect project source code for errors"
+	@echo "  test        - run project tests"
+	@echo "  testcluster - run project tests on etcd cluster"
+	@echo "  testreport  - run project tests and open HTML coverage report"
+	@echo "  build       - build project packages"
+	@echo "  upload      - upload built packages to package repository"
+	@echo "  outdated    - list outdated project requirements"
+	@echo "  genproto    - process .proto files and generate gRPC stubs"
+	@echo "  clean       - clean up project environment and all the build artifacts"
 
 deps:
 	python3 -m pip install pip==20.1.1 setuptools==47.1.1 wheel==0.34.2
@@ -22,6 +23,9 @@ lint:
 
 test:
 	python3 -m pytest
+
+testcluster:
+	python3 -m pifpaf -e PYTHON run etcd --cluster -- python3 -m pytest --basetemp={envtmpdir} {posargs}
 
 testreport:
 	python3 -m pytest --cov-report=html
