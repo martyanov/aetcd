@@ -62,10 +62,12 @@ class TestEtcd3:
         timeout = 5
         if endpoint:
             url = urllib.parse.urlparse(endpoint)
-            with aetcd3.client(host=url.hostname,
-                                 port=url.port,
-                                 timeout=timeout,
-                                 loop=event_loop) as client:
+            with aetcd3.client(
+                host=url.hostname,
+                port=url.port,
+                timeout=timeout,
+                loop=event_loop,
+            ) as client:
                 yield client
         else:
             async with aetcd3.client(loop=event_loop) as client:
