@@ -227,10 +227,9 @@ class Etcd3Client:
 
         .. code-block:: python
 
-            >>> import aetcd3
-            >>> etcd = aetcd3.client()
-            >>> etcd.get('/thing/key')
-            'hello world'
+            import aetcd3
+            etcd = aetcd3.client()
+            await etcd.get('/thing/key')
 
         :param key: key in etcd to get
         :param serializable: whether to allow serializable reads. This can
@@ -354,9 +353,9 @@ class Etcd3Client:
 
         .. code-block:: python
 
-            >>> import aetcd3
-            >>> etcd = aetcd3.client()
-            >>> etcd.put('/thing/key', 'hello world')
+            import aetcd3
+            etcd = aetcd3.client()
+            await etcd.put('/thing/key', 'hello world')
 
         :param key: key in etcd to set
         :param value: value to set key to
