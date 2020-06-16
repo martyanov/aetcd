@@ -25,7 +25,7 @@ test:
 	python3 -m pytest
 
 testcluster:
-	python3 -m pifpaf -e PYTHON run etcd --cluster -- python3 -m pytest --basetemp={envtmpdir} {posargs}
+	python3 -m pifpaf -e PYTHON run etcd --cluster -- python3 -m pytest
 
 testreport:
 	python3 -m pytest --cov-report=html
