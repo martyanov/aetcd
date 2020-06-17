@@ -290,7 +290,7 @@ class TestEtcd3:
 
     @pytest.mark.asyncio
     async def test_watch_exception_during_watch(self, etcd):
-        etcd.open()
+        await etcd.open()
 
         async def pass_exception_to_callback(callback):
             await asyncio.sleep(1)
@@ -690,7 +690,7 @@ class TestEtcd3:
 
     @pytest.mark.asyncio
     async def test_internal_exception_on_internal_error(self, etcd):
-        etcd.open()
+        await etcd.open()
         exception = self.MockedException(grpclib.const.Status.INTERNAL)
         kv_mock = unittest.mock.MagicMock()
         kv_mock.Range.side_effect = exception
@@ -700,9 +700,8 @@ class TestEtcd3:
             await etcd.get("foo")
 
     @pytest.mark.asyncio
-    async def test_connection_failure_exception_on_connection_failure(
-            self, etcd):
-        etcd.open()
+    async def test_connection_failure_exception_on_connection_failure(self, etcd):
+        await etcd.open()
         exception = self.MockedException(grpclib.const.Status.UNAVAILABLE)
         kv_mock = unittest.mock.MagicMock()
         kv_mock.Range.side_effect = exception
@@ -712,8 +711,7 @@ class TestEtcd3:
             await etcd.get("foo")
 
     @pytest.mark.asyncio
-    async def test_connection_timeout_exception_on_connection_timeout(
-            self, etcd):
+    async def test_connection_timeout_exception_on_connection_timeout(self, etcd):
         ex = self.MockedException(grpclib.const.Status.DEADLINE_EXCEEDED)
 
         class MockKvstub:
