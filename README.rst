@@ -5,6 +5,10 @@ aetcd3
    :alt: Build Status
    :target: https://github.com/martyanov/aetcd3/actions
 
+.. image:: https://codecov.io/gh/martyanov/aetcd3/coverage.svg?branch=master
+   :alt: Coverage report
+   :target: https://codecov.io/gh/martyanov/aetcd3/branch/master
+
 .. image:: https://img.shields.io/badge/docs-aetcd3.rtfd.io-green.svg
    :alt: Documentation
    :target: https://aetcd3.readthedocs.io

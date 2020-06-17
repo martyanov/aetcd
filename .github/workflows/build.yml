@@ -24,3 +24,5 @@ jobs:
       - name: Run tests
         run: |
           tox
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v1
