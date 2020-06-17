@@ -57,7 +57,7 @@ class TestEtcd3:
             self.status = status
 
     @pytest.fixture
-    async def etcd(self, event_loop):
+    async def etcd(self):
         endpoint = os.environ.get('PYTHON_ETCD_HTTP_URL')
         timeout = 5
         if endpoint:
@@ -66,11 +66,10 @@ class TestEtcd3:
                 host=url.hostname,
                 port=url.port,
                 timeout=timeout,
-                loop=event_loop,
             ) as client:
                 yield client
         else:
-            async with aetcd3.client(loop=event_loop) as client:
+            async with aetcd3.client() as client:
                 yield client
 
         @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
@@ -319,8 +318,8 @@ class TestEtcd3:
         await task
 
     @pytest.mark.asyncio
-    async def test_watch_timeout_on_establishment(self, event_loop):
-        async with aetcd3.client(timeout=3, loop=event_loop) as foo_etcd:
+    async def test_watch_timeout_on_establishment(self):
+        async with aetcd3.client(timeout=3) as foo_etcd:
             @contextlib.asynccontextmanager
             async def slow_watch_mock(*args, **kwargs):
                 await asyncio.sleep(40)
@@ -759,8 +758,8 @@ class TestEtcd3:
 
 class TestAlarms(object):
     @pytest.fixture
-    async def etcd(self, event_loop):
-        etcd = aetcd3.client(loop=event_loop)
+    async def etcd(self):
+        etcd = aetcd3.client()
         yield etcd
         await etcd.disarm_alarm()
         async for m in etcd.members():
@@ -825,8 +824,8 @@ class TestUtils(object):
 
 class TestClient(object):
     @pytest.fixture
-    def etcd(self, event_loop):
-        yield aetcd3.client(loop=event_loop)
+    def etcd(self):
+        yield aetcd3.client()
 
     def test_sort_target(self, etcd):
         key = 'key'.encode('utf-8')
@@ -862,19 +861,18 @@ class TestClient(object):
             etcd._build_get_range_request(key, sort_order='feelsbadman')
 
     @pytest.mark.asyncio
-    async def test_secure_channel(self, event_loop):
+    async def test_secure_channel(self):
         client = aetcd3.client(
             ca_cert="tests/ca.crt",
             cert_key="tests/client.key",
             cert_cert="tests/client.crt",
-            loop=event_loop
         )
         await client.open()
 
         assert client.uses_secure_channel is True
 
     @pytest.mark.asyncio
-    async def test_secure_channel_ca_cert_only(self, event_loop):
+    async def test_secure_channel_ca_cert_only(self):
         with tempfile.NamedTemporaryFile() as certfile_bundle:
             for fname in ('client.crt', 'ca.crt', 'client.key',):
                 with open(f'tests/{fname}', 'r+b') as f:
@@ -884,26 +882,25 @@ class TestClient(object):
                 ca_cert=certfile_bundle.name,
                 cert_key=None,
                 cert_cert=None,
-                loop=event_loop
             )
             await client.open()
 
             assert client.uses_secure_channel is True
 
-    def test_secure_channel_ca_cert_and_key_raise_exception(self, event_loop):
+    def test_secure_channel_ca_cert_and_key_raise_exception(self):
         with pytest.raises(ValueError):
             aetcd3.client(
                 ca_cert='tests/ca.crt',
                 cert_key='tests/client.crt',
                 cert_cert=None,
-                loop=event_loop)
+            )
 
         with pytest.raises(ValueError):
             aetcd3.client(
                 ca_cert='tests/ca.crt',
                 cert_key=None,
                 cert_cert='tests/client.crt',
-                loop=event_loop)
+            )
 
     @pytest.mark.asyncio
     async def test_compact(self, etcd):
@@ -915,34 +912,32 @@ class TestClient(object):
             await etcd.compact(revision)
 
     @pytest.mark.asyncio
-    async def test_channel_with_no_cert(self, event_loop):
+    async def test_channel_with_no_cert(self):
         client = aetcd3.client(
             ca_cert=None,
             cert_key=None,
             cert_cert=None,
-            loop=event_loop
         )
         await client.open()
 
         assert client.uses_secure_channel is False
 
     @pytest.mark.asyncio
-    async def test_user_pwd_auth(self, event_loop):
+    async def test_user_pwd_auth(self):
         with self._enabled_auth_in_etcd():
             # Create a client using username and password auth
             client = aetcd3.client(
                 user='root',
                 password='pwd',
-                loop=event_loop
             )
             await client.get('probably-invalid-key')
 
-    def test_user_or_pwd_auth_raises_exception(self, event_loop):
+    def test_user_or_pwd_auth_raises_exception(self):
         with pytest.raises(Exception, match='both user and password'):
-            aetcd3.client(user='usr', loop=event_loop)
+            aetcd3.client(user='usr')
 
         with pytest.raises(Exception, match='both user and password'):
-            aetcd3.client(password='pwd', loop=event_loop)
+            aetcd3.client(password='pwd')
 
     @staticmethod
     @contextlib.contextmanager

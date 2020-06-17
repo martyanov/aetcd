@@ -113,11 +113,18 @@ def _ensure_channel(f):
 
 
 class Etcd3Client:
-    def __init__(self, host='localhost', port=2379,
-                 ca_cert=None, cert_key=None, cert_cert=None, timeout=None,
-                 user=None, password=None, grpc_options=None,
-                 loop=None):
-
+    def __init__(
+            self,
+            host='localhost',
+            port=2379,
+            ca_cert=None,
+            cert_key=None,
+            cert_cert=None,
+            timeout=None,
+            user=None,
+            password=None,
+            grpc_options=None,
+    ):
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -145,7 +152,6 @@ class Etcd3Client:
         self.cert_cert = cert_cert
         self.user = user
         self.password = password
-        self.loop = loop
 
         self._init_channel_attrs()
 
@@ -168,7 +174,7 @@ class Etcd3Client:
 
         cert_params = [c is not None for c in (self.cert_cert, self.cert_key)]
         if self.ca_cert is not None:
-            self.channel = Channel(host=self.host, port=self.port, ssl=True, loop=self.loop)
+            self.channel = Channel(host=self.host, port=self.port, ssl=True)
 
             if all(cert_params):
                 ca_bundle = tempfile.mktemp()
@@ -184,7 +190,7 @@ class Etcd3Client:
             self.uses_secure_channel = True
         else:
             self.uses_secure_channel = False
-            self.channel = Channel(host=self.host, port=self.port, loop=self.loop)
+            self.channel = Channel(host=self.host, port=self.port)
 
         cred_params = [c is not None for c in (self.user, self.password)]
         if all(cred_params):
