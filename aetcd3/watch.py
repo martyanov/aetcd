@@ -8,6 +8,7 @@ from . import events
 from . import exceptions
 from . import utils
 
+
 _log = logging.getLogger(__name__)
 
 
@@ -45,7 +46,7 @@ class Watcher(object):
         self._new_watch_cond = asyncio.Condition(lock=self._lock)
         self._new_watch = None
 
-    async def add_callback(self, key, callback, range_end=None,  # noqa: C901
+    async def add_callback(self, key, callback, range_end=None,
                            start_revision=None, progress_notify=False,
                            filters=None, prev_kv=False):
         rq = self._create_watch_request(key, range_end=range_end,
@@ -112,7 +113,7 @@ class Watcher(object):
                 stream.end()
 
         self._sender_task = asyncio.get_running_loop().create_task(
-            sender_task(self.timeout, self._metadata, self._run_receiver)
+            sender_task(self.timeout, self._metadata, self._run_receiver),
         )
 
     async def _run_receiver(self, stream):
@@ -148,7 +149,7 @@ class Watcher(object):
 
     def close(self):
         """Close the streams for sending and receiving watch events."""
-        for t in (self._receiver_task, self._sender_task,):
+        for t in (self._receiver_task, self._sender_task):
             if t:
                 t.cancel()
 

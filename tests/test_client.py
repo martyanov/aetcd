@@ -398,7 +398,7 @@ class TestEtcd3:
         await etcd.transaction(
             compare=[etcd.transactions.value('/doot/txn') == 'dootdoot'],
             success=[etcd.transactions.put('/doot/txn', 'success')],
-            failure=[etcd.transactions.put('/doot/txn', 'failure')]
+            failure=[etcd.transactions.put('/doot/txn', 'failure')],
         )
         out = etcdctl('get', '/doot/txn')
         assert base64.b64decode(out['kvs'][0]['value']) == b'success'
@@ -409,7 +409,7 @@ class TestEtcd3:
         await etcd.transaction(
             compare=[etcd.transactions.value('/doot/txn') == 'dootdoot'],
             success=[etcd.transactions.put('/doot/txn', 'success')],
-            failure=[etcd.transactions.put('/doot/txn', 'failure')]
+            failure=[etcd.transactions.put('/doot/txn', 'failure')],
         )
         out = etcdctl('get', '/doot/txn')
         assert base64.b64decode(out['kvs'][0]['value']) == b'failure'
@@ -431,7 +431,7 @@ class TestEtcd3:
                          compare=[],
                          success=[etcd.transactions.put('/doot/txn2', '2')],
                          failure=[])],
-            failure=[]
+            failure=[],
         )
         value, _ = await etcd.get('/doot/txn1')
         assert value == b'1'
@@ -714,7 +714,7 @@ class TestEtcd3:
         ex = self.MockedException(grpclib.const.Status.DEADLINE_EXCEEDED)
 
         class MockKvstub:
-            async def Range(self, *args, **kwargs):
+            async def Range(self, *args, **kwargs):  # noqa: N802
                 raise ex
 
         etcd.kvstub = MockKvstub()
@@ -874,7 +874,7 @@ class TestClient(object):
     @pytest.mark.asyncio
     async def test_secure_channel_ca_cert_only(self):
         with tempfile.NamedTemporaryFile() as certfile_bundle:
-            for fname in ('client.crt', 'ca.crt', 'client.key',):
+            for fname in ('client.crt', 'ca.crt', 'client.key'):
                 with open(f'tests/{fname}', 'r+b') as f:
                     certfile_bundle.write(f.read())
             certfile_bundle.flush()

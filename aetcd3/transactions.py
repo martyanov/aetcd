@@ -5,7 +5,7 @@ _OPERATORS = {
     etcdrpc.Compare.EQUAL: "==",
     etcdrpc.Compare.NOT_EQUAL: "!=",
     etcdrpc.Compare.LESS: "<",
-    etcdrpc.Compare.GREATER: ">"
+    etcdrpc.Compare.GREATER: ">",
 }
 
 

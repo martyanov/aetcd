@@ -85,15 +85,17 @@ class Lock(object):
 
             success, _ = await self.etcd_client.transaction(
                 compare=[
-                    self.etcd_client.transactions.create(self.key) == 0
+                    self.etcd_client.transactions.create(self.key) == 0,
                 ],
                 success=[
-                    self.etcd_client.transactions.put(self.key, self.uuid,
-                                                      lease=self.lease)
+                    self.etcd_client.transactions.put(
+                        self.key, self.uuid,
+                        lease=self.lease,
+                    ),
                 ],
                 failure=[
-                    self.etcd_client.transactions.get(self.key)
-                ]
+                    self.etcd_client.transactions.get(self.key),
+                ],
             )
             if success is True:
                 return True
@@ -109,10 +111,10 @@ class Lock(object):
         """Release the lock."""
         success, _ = await self.etcd_client.transaction(
             compare=[
-                self.etcd_client.transactions.value(self.key) == self.uuid
+                self.etcd_client.transactions.value(self.key) == self.uuid,
             ],
             success=[self.etcd_client.transactions.delete(self.key)],
-            failure=[]
+            failure=[],
         )
         return success
 

@@ -50,10 +50,12 @@ setuptools.setup(
     ],
     extras_require={
         'dev': [
+            'flake8-commas==2.0.0',
             'flake8-docstrings==1.5.0',
             'flake8-import-order==0.18.1',
             'flake8==3.8.3',
             'grpcio-tools==1.29.0',
+            'pep8-naming==0.10.0',
             'twine==3.1.1',
         ],
         'doc': [

@@ -144,8 +144,7 @@ class Etcd3Client:
         if any(cred_params) and None in cred_params:
             raise Exception(
                 'if using authentication credentials both user and password '
-                'must be specified.'
-            )
+                'must be specified.')
 
         self.ca_cert = ca_cert
         self.cert_key = cert_key
@@ -179,7 +178,7 @@ class Etcd3Client:
             if all(cert_params):
                 ca_bundle = tempfile.mktemp()
                 async with aiofiles.open(ca_bundle, 'w') as cert_bundle:
-                    for cf_path in (self.cert_cert, self.ca_cert,):
+                    for cf_path in (self.cert_cert, self.ca_cert):
                         async with aiofiles.open(cf_path) as cf:
                             await cert_bundle.write(await cf.read())
                     await cert_bundle.flush()
@@ -197,7 +196,7 @@ class Etcd3Client:
             self.auth_stub = etcdrpc.AuthStub(self.channel)
             auth_request = etcdrpc.AuthenticateRequest(
                 name=self.user,
-                password=self.password
+                password=self.password,
             )
 
             resp = await self.auth_stub.Authenticate(auth_request, timeout=self.timeout)
@@ -249,7 +248,7 @@ class Etcd3Client:
         range_response = await self.kvstub.Range(
             range_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         if range_response.count < 1:
@@ -280,7 +279,7 @@ class Etcd3Client:
         range_response = await self.kvstub.Range(
             range_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         if range_response.count < 1:
@@ -305,13 +304,13 @@ class Etcd3Client:
             range_end=range_end,
             sort_order=sort_order,
             sort_target=sort_target,
-            **kwargs
+            **kwargs,
         )
 
         range_response = await self.kvstub.Range(
             range_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         if range_response.count < 1:
@@ -340,7 +339,7 @@ class Etcd3Client:
         range_response = await self.kvstub.Range(
             range_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         if range_response.count < 1:
@@ -378,7 +377,7 @@ class Etcd3Client:
         return await self.kvstub.Put(
             put_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
     @_handle_errors
@@ -428,7 +427,7 @@ class Etcd3Client:
         delete_response = await self.kvstub.DeleteRange(
             delete_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
         if return_response:
             return delete_response
@@ -440,12 +439,12 @@ class Etcd3Client:
         """Delete a range of keys with a prefix in etcd."""
         delete_request = self._build_delete_request(
             prefix,
-            range_end=utils.prefix_range_end(utils.to_bytes(prefix))
+            range_end=utils.prefix_range_end(utils.to_bytes(prefix)),
         )
         return await self.kvstub.DeleteRange(
             delete_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
     @_handle_errors
@@ -456,7 +455,7 @@ class Etcd3Client:
         status_response = await self.maintenancestub.Status(
             status_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         async for m in self.members():
@@ -578,8 +577,7 @@ class Etcd3Client:
         If the timeout was specified and event didn't arrived method
         will raise ``WatchTimedOut`` exception.
         """
-        kwargs['range_end'] = \
-            utils.prefix_range_end(utils.to_bytes(key_prefix))
+        kwargs['range_end'] = utils.prefix_range_end(utils.to_bytes(key_prefix))
         return await self.watch_once(key_prefix, timeout=timeout, **kwargs)
 
     @_handle_errors
@@ -633,7 +631,7 @@ class Etcd3Client:
         txn_response = await self.kvstub.Txn(
             transaction_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         responses = []
@@ -673,7 +671,7 @@ class Etcd3Client:
         lease_grant_response = await self.leasestub.LeaseGrant(
             lease_grant_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
         return leases.Lease(lease_id=lease_grant_response.ID,
                             ttl=lease_grant_response.TTL,
@@ -691,7 +689,7 @@ class Etcd3Client:
         await self.leasestub.LeaseRevoke(
             lease_revoke_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
     @_handle_errors
@@ -711,7 +709,7 @@ class Etcd3Client:
         return await self.leasestub.LeaseTimeToLive(
             ttl_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
     @_handle_errors
@@ -744,7 +742,7 @@ class Etcd3Client:
         member_add_response = await self.clusterstub.MemberAdd(
             member_add_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         member = member_add_response.member
@@ -768,7 +766,7 @@ class Etcd3Client:
         await self.clusterstub.MemberRemove(
             member_rm_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
     @_handle_errors
@@ -786,7 +784,7 @@ class Etcd3Client:
         await self.clusterstub.MemberUpdate(
             member_update_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
     @_ensure_channel
@@ -801,7 +799,7 @@ class Etcd3Client:
         member_list_response = await self.clusterstub.MemberList(
             member_list_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         for member in member_list_response.members:
@@ -833,7 +831,7 @@ class Etcd3Client:
         await self.kvstub.Compact(
             compact_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
     @_handle_errors
@@ -844,7 +842,7 @@ class Etcd3Client:
         await self.maintenancestub.Defragment(
             defrag_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
     @_handle_errors
@@ -878,7 +876,7 @@ class Etcd3Client:
         alarm_response = await self.maintenancestub.Alarm(
             alarm_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         return [Alarm(alarm.alarm, alarm.memberID)
@@ -901,7 +899,7 @@ class Etcd3Client:
         alarm_response = await self.maintenancestub.Alarm(
             alarm_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         for alarm in alarm_response.alarms:
@@ -923,7 +921,7 @@ class Etcd3Client:
         alarm_response = await self.maintenancestub.Alarm(
             alarm_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         return [Alarm(alarm.alarm, alarm.memberID)
@@ -940,7 +938,7 @@ class Etcd3Client:
         snapshot_responses = await self.maintenancestub.Snapshot(
             snapshot_request,
             timeout=self.timeout,
-            metadata=self.metadata
+            metadata=self.metadata,
         )
 
         for response in snapshot_responses:
@@ -1091,7 +1089,7 @@ def client(
         timeout=None,
         user=None,
         password=None,
-        **kwargs
+        **kwargs,
 ):
     """Return an instance of an Etcd3Client."""
     return Etcd3Client(
@@ -1103,4 +1101,5 @@ def client(
         timeout=timeout,
         user=user,
         password=password,
-        **kwargs)
+        **kwargs,
+    )
