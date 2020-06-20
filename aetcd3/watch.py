@@ -103,7 +103,12 @@ class Watcher(object):
 
         async def sender_task(timeout, metadata, run_receiver_fn):
             async with self._watch_stub.Watch.open(timeout=timeout, metadata=metadata) as stream:
-                while request := await self._request_queue.get():
+                while True:
+                    request = await self._request_queue.get()
+
+                    if request is None:
+                        break
+
                     try:
                         await stream.send_message(request)
                         await run_receiver_fn(stream)
@@ -123,7 +128,12 @@ class Watcher(object):
         async def receiver_task():
             nonlocal stream
             try:
-                while response := await stream.recv_message():
+                while True:
+                    response = await stream.recv_message()
+
+                    if not response:
+                        break
+
                     await self._handle_response(response)
             except grpclib.exceptions.StreamTerminatedError as err:
                 await self._handle_steam_termination(err)

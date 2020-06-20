@@ -28,10 +28,10 @@ _EXCEPTIONS_BY_CODE = {
 
 
 def _translate_exception(error: grpclib.exceptions.GRPCError):
-    if exception := _EXCEPTIONS_BY_CODE.get(error.status):
-        raise exception
-    else:
-        raise
+    exc = _EXCEPTIONS_BY_CODE.get(error.status)
+    if exc is not None:
+        raise exc
+    raise
 
 
 class Transactions(object):

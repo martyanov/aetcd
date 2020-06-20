@@ -5,24 +5,33 @@ on:
     branches:
       - master
     tags:
-      - "v*"
+      - 'v*'
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.7', '3.8']
+        os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
+      - name: Set up Python ${{ matrix.python_version }}
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
-      - name: Install dependencies
+          python-version: ${{ matrix.python_version }}
+      - name: Setup dependencies
         run: |
           sudo apt install etcd
           sudo systemctl stop etcd
           make deps
+      - name: Run lint
+        run: |
+          make lint
       - name: Run tests
         run: |
-          tox
+          make testcluster
       - name: Upload coverage report
         uses: codecov/codecov-action@v1
+        if: matrix.python_version == '3.8'
