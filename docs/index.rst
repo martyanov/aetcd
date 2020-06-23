@@ -1,5 +1,5 @@
 Welcome to aetcd3's documentation!
-========================================
+==================================
 
 Contents:
 
@@ -10,7 +10,6 @@ Contents:
    installation
    usage
    contributing
-   authors
    history
 
 Indices and tables
