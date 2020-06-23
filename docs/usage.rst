@@ -2,17 +2,17 @@
 API Usage
 =========
 
-To use python-etcd3 in a project:
+To use aetcd3 in a project:
 
 .. code-block:: python
 
-    import etcd3
+    import aetcd3
 
 and create a client:
 
 .. code-block:: python
 
-    etcd = etcd3.client()
+    etcd = aetcd3.client()
 
 This defaults to localhost, but you can specify the host and port:
 
@@ -49,14 +49,14 @@ You can check this has been stored correctly by testing with etcdctl:
 API
 ===
 
-.. autoclass:: etcd3.Etcd3Client
+.. autoclass:: aetcd3.Etcd3Client
     :members:
 
-.. autoclass:: etcd3.Member
+.. autoclass:: aetcd3.Member
     :members:
 
-.. autoclass:: etcd3.Lease
+.. autoclass:: aetcd3.Lease
     :members:
 
-.. autoclass:: etcd3.Lock
+.. autoclass:: aetcd3.Lock
     :members:

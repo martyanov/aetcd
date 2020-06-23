@@ -501,6 +501,7 @@ class Etcd3Client:
         Example usage:
 
         .. code-block:: python
+
             events_iterator, cancel = etcd.watch('/doot/key')
             for event in events_iterator:
                 print(event)
