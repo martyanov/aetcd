@@ -2,6 +2,14 @@
 History
 =======
 
+0.1.0a3 (2021-03-26)
+--------------------
+
+* Bump grpclib version ranges to fix incompatibility with h2
+* Bump packaging, dev and test dependencies to recent versions
+* Get rid of python 3.7 support
+
+
 0.1.0a2 (2020-06-22)
 --------------------
 
