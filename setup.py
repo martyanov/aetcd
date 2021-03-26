@@ -41,7 +41,7 @@ setuptools.setup(
     },
     python_requires='>=3.8,<4.0',
     setup_requires=[
-        'setuptools_scm==4.1.2',
+        'setuptools_scm==6.0.1',
     ],
     install_requires=[
         'aiofiles>=0.5,<0.6',
