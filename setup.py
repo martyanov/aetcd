@@ -32,14 +32,14 @@ setuptools.setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     project_urls={
         'Bug Reports': 'https://github.com/martyanov/aetcd3/issues',
         'Repository': 'https://github.com/martyanov/aetcd3',
     },
-    python_requires='>=3.7,<4.0',
+    python_requires='>=3.8,<4.0',
     setup_requires=[
         'setuptools_scm==4.1.2',
     ],
