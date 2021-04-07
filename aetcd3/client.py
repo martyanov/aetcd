@@ -154,6 +154,10 @@ class Etcd3Client:
 
         self._init_channel_attrs()
 
+    def __del__(self):
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self.close())
+
     def _init_channel_attrs(self):
         # These attributes will be assigned during opening of GRPC channel
         self.channel = None
