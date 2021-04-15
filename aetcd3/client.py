@@ -1,3 +1,4 @@
+from typing import List, Tuple
 import asyncio
 import functools
 import inspect
@@ -731,7 +732,10 @@ class Etcd3Client:
 
     @_handle_errors
     @_ensure_channel
-    async def add_member(self, urls):
+    async def add_member(
+        self,
+        urls: List[str]
+    ) -> Tuple[members.Member, List[members.Member]]:
         """
         Add a member into the cluster.
 
@@ -746,14 +750,25 @@ class Etcd3Client:
             metadata=self.metadata,
         )
 
-        member = member_add_response.member
-        return members.Member(
-            member.ID,
-            member.name,
-            member.peerURLs,
-            member.clientURLs,
+        member_res: members.Member = member_add_response.member
+        nodes_lst: List[members.Member] = []
+        for node in member_add_response.members:
+            nodes_lst.append(
+                members.Member(
+                    node.ID,
+                    node.name,
+                    node.peerURLs,
+                    node.clientURLs
+                )
+            )
+        member = members.Member(
+            member_res.ID,
+            member_res.name,
+            member_res.peerURLs,
+            member_res.clientURLs,
             etcd_client=self,
         )
+        return member, nodes_lst
 
     @_handle_errors
     @_ensure_channel
