@@ -25,7 +25,7 @@ jobs:
         run: |
           sudo apt install etcd
           sudo systemctl stop etcd
-          make deps
+          make bootstrap
       - name: Run lint
         run: |
           make lint
