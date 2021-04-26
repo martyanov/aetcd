@@ -3,7 +3,7 @@ name: build
 on:
   push:
     branches:
-      - master
+      - '*'
     tags:
       - 'v*'
 
@@ -37,4 +37,4 @@ jobs:
           make genproto
       - name: Upload coverage report
         uses: codecov/codecov-action@v1
-        if: matrix.python_version == '3.9'
+        if: matrix.python_version == '3.9' && github.ref == 'refs/heads/master'
