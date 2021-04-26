@@ -68,7 +68,6 @@ setuptools.setup(
             'pytest-asyncio==0.15.1',
             'pytest-cov==2.11.1',
             'pytest==6.2.3',
-            'tox==3.15.2',
         ],
     },
 )
