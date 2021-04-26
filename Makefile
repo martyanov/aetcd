@@ -15,7 +15,7 @@ help:
 	@echo "  clean       - clean up project environment and all the build artifacts"
 
 deps:
-	python3 -m pip install pip==21.0.1 setuptools==54.2.0 wheel==0.36.2
+	python3 -m pip install pip==21.1 setuptools==56.0.0 wheel==0.36.2
 	python3 -m pip install -e .[dev,doc,test]
 
 lint:
