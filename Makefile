@@ -32,7 +32,7 @@ test: bootstrap
 	$(PYTHON) -m pytest
 
 testcluster: bootstrap
-	$(PYTHON) -m pifpaf -e PYTHON run etcd --cluster -- python3 -m pytest
+	$(PYTHON) -m pifpaf -e PYTHON run etcd --cluster -- $(PYTHON) -m pytest
 
 testreport: bootstrap
 	$(PYTHON) -m pytest --cov-report=html
