@@ -54,6 +54,8 @@ genproto: bootstrap
 	sed -i -e '/google\/api\/annotations.proto/d' aetcd3/proto/rpc.proto
 	sed -i -e '/option (google.api.http)/,+3d' aetcd3/proto/rpc.proto
 	$(PYTHON) -m grpc_tools.protoc -Iaetcd3/proto \
+        --plugin=protoc-gen-python_grpc=$(VENV)/bin/protoc-gen-python_grpc \
+        --plugin=protoc-gen-grpclib_python=$(VENV)/bin/protoc-gen-grpclib_python \
         --python_out=aetcd3/etcdrpc/ \
         --python_grpc_out=aetcd3/etcdrpc/ \
         aetcd3/proto/rpc.proto aetcd3/proto/auth.proto aetcd3/proto/kv.proto
