@@ -1,4 +1,5 @@
 from . import etcdrpc
+from .client import Alarm
 from .client import Etcd3Client
 from .client import Transactions
 from .client import client
@@ -9,6 +10,7 @@ from .members import Member
 
 
 __all__ = (
+    'Alarm',
     'Etcd3Client',
     'Etcd3Exception',
     'Lease',

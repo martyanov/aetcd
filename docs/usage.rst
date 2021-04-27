@@ -40,6 +40,9 @@ You can check this has been stored correctly by testing with etcdctl:
 API
 ===
 
+.. autoclass:: aetcd3.Alarm
+    :members:
+
 .. autoclass:: aetcd3.Etcd3Client
     :members:
 

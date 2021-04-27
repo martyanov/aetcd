@@ -1,45 +1,44 @@
-class Member(object):
-    """
-    A member of the etcd cluster.
+class Member:
+    """A member of the etcd cluster.
 
-    :ivar id: ID of the member
-    :ivar name: human-readable name of the member
-    :ivar peer_urls: list of URLs the member exposes to the cluster for
+    :param id: ID of the cluster member
+    :param name: Human-readable name of the cluster member
+    :param peer_urls: List of URLs the cluster member exposes to the cluster for
                      communication
-    :ivar client_urls: list of URLs the member exposes to clients for
+    :param client_urls: List of URLs the cluster member exposes to clients for
                        communication
+    :param etcd_client: Instance of :class:`aetcd3.Etcd3Client`
     """
 
-    def __init__(self, id, name, peer_urls, client_urls, etcd_client=None):
+    def __init__(self, id, name, peer_urls, client_urls, etcd_client):
         self.id = id
         self.name = name
         self.peer_urls = peer_urls
         self.client_urls = client_urls
+
         self._etcd_client = etcd_client
 
     def __str__(self):
-        return ('Member {id}: peer urls: {peer_urls}, client '
-                'urls: {client_urls}'.format(id=self.id,
-                                             peer_urls=self.peer_urls,
-                                             client_urls=self.client_urls))
+        return (
+            f'Cluster member with ID: {self.id}, peer URLs: {self.peer_urls}, client '
+            f'URLs: {self.client_urls}'
+        )
 
     async def remove(self):
-        """Remove this member from the cluster."""
+        """Remove this cluster member from the cluster."""
         await self._etcd_client.remove_member(self.id)
 
     async def update(self, peer_urls):
-        """
-        Update the configuration of this member.
+        """Update the configuration of this cluster member.
 
-        :param peer_urls: new list of peer urls the member will use to
+        :param peer_urls: New list of peer URLs the cluster member will use to
                           communicate with the cluster
         """
         await self._etcd_client.update_member(self.id, peer_urls)
 
-    # @property
     async def active_alarms(self):
-        """Get active alarms of the member.
+        """Get active alarms of the cluster member.
 
-        :returns: Alarms
+        :returns: List of :class:`aetcd3.Alarm`
         """
         return await self._etcd_client.list_alarms(member_id=self.id)
