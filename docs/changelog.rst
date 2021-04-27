@@ -1,6 +1,24 @@
-=======
-History
-=======
+=========
+Changelog
+=========
+
+0.1.0a5 (2021-04-27)
+--------------------
+
+Bugfixes
+^^^^^^^^
+
+* Await for stream end
+
+Internals
+^^^^^^^^^
+
+* Support for aiofiles 0.6.x
+* Bump setup dependencies: pip 21.1, setuptools 56.0.0
+* Bump test dependencies: pytest 6.2.3, pytest-asyncio 0.15.1
+* Bump dev dependencies: flake8 3.9.1, grcpio-tools 1.37.0
+* Get rid of tox
+* Manage everything via provided Makefile, use CI to upload tagged packages
 
 0.1.0a4 (2021-03-26)
 --------------------
