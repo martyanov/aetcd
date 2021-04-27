@@ -1,40 +1,95 @@
 name: build
 
-on:
-  push:
-    branches:
-      - '*'
-    tags:
-      - 'v*'
+on: ['push', 'pull_request']
 
 jobs:
   test:
+    name: Test packages
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.8', '3.9']
         os: [ubuntu-latest]
+        python_version: ['3.8', '3.9']
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout source repository for Python ${{ matrix.python_version }}
+        uses: actions/checkout@v2
+
       - name: Set up Python ${{ matrix.python_version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python_version }}
-      - name: Setup dependencies
+
+      - name: Set up dependencies for Python ${{ matrix.python_version }}
         run: |
           sudo apt install etcd
           sudo systemctl stop etcd
           make bootstrap
+
       - name: Run lint
         run: |
           make lint
+
       - name: Run tests
         run: |
           make testcluster
+
       - name: Run genproto
         run: |
           make genproto
+
       - name: Upload coverage report
         uses: codecov/codecov-action@v1
         if: matrix.python_version == '3.9' && github.ref == 'refs/heads/master'
+
+  build:
+    name: Build packages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python_version: ['3.8', '3.9']
+    needs: ['test']
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout source repository for Python ${{ matrix.python_version }}
+        uses: actions/checkout@v2
+
+      - name: Set up dependecnies for Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Build packages
+        run: |
+          make build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: 'aetcd3-python-${{ matrix.python_version }}'
+          path: dist/*
+
+  upload:
+    name: Upload packages
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python_version: ['3.8', '3.9']
+    needs: ['test', 'build']
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: 'aetcd3-python-${{ matrix.python_version }}'
+          path: dist
+
+      - name: Publish built packages
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: '__token__'
+          password: ${{ secrets.PYPI_API_TOKEN }}
