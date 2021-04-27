@@ -2,6 +2,14 @@
 Changelog
 =========
 
+0.1.0a6 (2021-04-27)
+--------------------
+
+Internals
+^^^^^^^^^
+
+* Build packages only on the latest supported python version
+
 0.1.0a5 (2021-04-27)
 --------------------
 
