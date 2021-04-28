@@ -17,11 +17,11 @@ setuptools.setup(
     url='https://github.com/martyanov/aetcd3',
     packages=[
         'aetcd3',
-        'aetcd3.etcdrpc',
+        'aetcd3.rpc',
     ],
     package_dir={
         'aetcd3': 'aetcd3',
-        'aetcd3.etcdrpc': 'aetcd3/etcdrpc',
+        'aetcd3.rpc': 'aetcd3/rpc',
     },
     include_package_data=True,
     license='Apache Software License 2.0',

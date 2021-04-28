@@ -16,8 +16,8 @@ import grpclib
 import pytest
 import tenacity
 
-import aetcd3.etcdrpc as etcdrpc
 import aetcd3.exceptions
+import aetcd3.rpc as rpc
 import aetcd3.utils as utils
 
 
@@ -770,7 +770,7 @@ class TestAlarms(object):
 
         assert len(alarms) == 1
         assert alarms[0].member_id == 0
-        assert alarms[0].alarm_type == etcdrpc.NOSPACE
+        assert alarms[0].alarm_type == rpc.NOSPACE
 
     @pytest.mark.asyncio
     async def test_create_alarm_specific_member(self, etcd):
@@ -781,7 +781,7 @@ class TestAlarms(object):
 
         assert len(alarms) == 1
         assert alarms[0].member_id == a_member.id
-        assert alarms[0].alarm_type == etcdrpc.NOSPACE
+        assert alarms[0].alarm_type == rpc.NOSPACE
 
     @pytest.mark.asyncio
     async def test_list_alarms(self, etcd):
@@ -796,7 +796,7 @@ class TestAlarms(object):
         assert len(alarms) == 2
         for alarm in alarms:
             possible_member_ids.remove(alarm.member_id)
-            assert alarm.alarm_type == etcdrpc.NOSPACE
+            assert alarm.alarm_type == rpc.NOSPACE
 
         assert possible_member_ids == []
 
@@ -828,12 +828,12 @@ class TestClient(object):
     def test_sort_target(self, etcd):
         key = 'key'.encode('utf-8')
         sort_target = {
-            None: etcdrpc.RangeRequest.KEY,
-            'key': etcdrpc.RangeRequest.KEY,
-            'version': etcdrpc.RangeRequest.VERSION,
-            'create': etcdrpc.RangeRequest.CREATE,
-            'mod': etcdrpc.RangeRequest.MOD,
-            'value': etcdrpc.RangeRequest.VALUE,
+            None: rpc.RangeRequest.KEY,
+            'key': rpc.RangeRequest.KEY,
+            'version': rpc.RangeRequest.VERSION,
+            'create': rpc.RangeRequest.CREATE,
+            'mod': rpc.RangeRequest.MOD,
+            'value': rpc.RangeRequest.VALUE,
         }
 
         for input, expected in sort_target.items():
@@ -846,9 +846,9 @@ class TestClient(object):
     def test_sort_order(self, etcd):
         key = 'key'.encode('utf-8')
         sort_target = {
-            None: etcdrpc.RangeRequest.NONE,
-            'ascend': etcdrpc.RangeRequest.ASCEND,
-            'descend': etcdrpc.RangeRequest.DESCEND,
+            None: rpc.RangeRequest.NONE,
+            'ascend': rpc.RangeRequest.ASCEND,
+            'descend': rpc.RangeRequest.DESCEND,
         }
 
         for input, expected in sort_target.items():
@@ -959,66 +959,66 @@ class TestCompares(object):
         tx = aetcd3.Transactions()
 
         version_compare = tx.version(key) == 1
-        assert version_compare.op == etcdrpc.Compare.EQUAL
+        assert version_compare.op == rpc.Compare.EQUAL
 
         version_compare = tx.version(key) != 2
-        assert version_compare.op == etcdrpc.Compare.NOT_EQUAL
+        assert version_compare.op == rpc.Compare.NOT_EQUAL
 
         version_compare = tx.version(key) < 91
-        assert version_compare.op == etcdrpc.Compare.LESS
+        assert version_compare.op == rpc.Compare.LESS
 
         version_compare = tx.version(key) > 92
-        assert version_compare.op == etcdrpc.Compare.GREATER
+        assert version_compare.op == rpc.Compare.GREATER
         assert version_compare.build_message().target == \
-               etcdrpc.Compare.VERSION
+               rpc.Compare.VERSION
 
     def test_compare_value(self):
         key = 'key'
         tx = aetcd3.Transactions()
 
         value_compare = tx.value(key) == 'b'
-        assert value_compare.op == etcdrpc.Compare.EQUAL
+        assert value_compare.op == rpc.Compare.EQUAL
 
         value_compare = tx.value(key) != 'b'
-        assert value_compare.op == etcdrpc.Compare.NOT_EQUAL
+        assert value_compare.op == rpc.Compare.NOT_EQUAL
 
         value_compare = tx.value(key) < 'b'
-        assert value_compare.op == etcdrpc.Compare.LESS
+        assert value_compare.op == rpc.Compare.LESS
 
         value_compare = tx.value(key) > 'b'
-        assert value_compare.op == etcdrpc.Compare.GREATER
-        assert value_compare.build_message().target == etcdrpc.Compare.VALUE
+        assert value_compare.op == rpc.Compare.GREATER
+        assert value_compare.build_message().target == rpc.Compare.VALUE
 
     def test_compare_mod(self):
         key = 'key'
         tx = aetcd3.Transactions()
 
         mod_compare = tx.mod(key) == -100
-        assert mod_compare.op == etcdrpc.Compare.EQUAL
+        assert mod_compare.op == rpc.Compare.EQUAL
 
         mod_compare = tx.mod(key) != -100
-        assert mod_compare.op == etcdrpc.Compare.NOT_EQUAL
+        assert mod_compare.op == rpc.Compare.NOT_EQUAL
 
         mod_compare = tx.mod(key) < 19
-        assert mod_compare.op == etcdrpc.Compare.LESS
+        assert mod_compare.op == rpc.Compare.LESS
 
         mod_compare = tx.mod(key) > 21
-        assert mod_compare.op == etcdrpc.Compare.GREATER
-        assert mod_compare.build_message().target == etcdrpc.Compare.MOD
+        assert mod_compare.op == rpc.Compare.GREATER
+        assert mod_compare.build_message().target == rpc.Compare.MOD
 
     def test_compare_create(self):
         key = 'key'
         tx = aetcd3.Transactions()
 
         create_compare = tx.create(key) == 10
-        assert create_compare.op == etcdrpc.Compare.EQUAL
+        assert create_compare.op == rpc.Compare.EQUAL
 
         create_compare = tx.create(key) != 10
-        assert create_compare.op == etcdrpc.Compare.NOT_EQUAL
+        assert create_compare.op == rpc.Compare.NOT_EQUAL
 
         create_compare = tx.create(key) < 155
-        assert create_compare.op == etcdrpc.Compare.LESS
+        assert create_compare.op == rpc.Compare.LESS
 
         create_compare = tx.create(key) > -12
-        assert create_compare.op == etcdrpc.Compare.GREATER
-        assert create_compare.build_message().target == etcdrpc.Compare.CREATE
+        assert create_compare.op == rpc.Compare.GREATER
+        assert create_compare.build_message().target == rpc.Compare.CREATE

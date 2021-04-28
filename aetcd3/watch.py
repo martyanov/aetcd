@@ -3,9 +3,9 @@ import logging
 
 import grpclib
 
-from . import etcdrpc
 from . import events
 from . import exceptions
+from . import rpc
 from . import utils
 
 
@@ -203,16 +203,16 @@ class Watcher(object):
             await _safe_callback(callback, events.new_event(event))
 
     async def _cancel_no_lock(self, watch_id):
-        cancel_watch = etcdrpc.WatchCancelRequest()
+        cancel_watch = rpc.WatchCancelRequest()
         cancel_watch.watch_id = watch_id
-        rq = etcdrpc.WatchRequest(cancel_request=cancel_watch)
+        rq = rpc.WatchRequest(cancel_request=cancel_watch)
         await self._request_queue.put(rq)
 
     @staticmethod
     def _create_watch_request(key, range_end=None, start_revision=None,
                               progress_notify=False, filters=None,
                               prev_kv=False):
-        create_watch = etcdrpc.WatchCreateRequest()
+        create_watch = rpc.WatchCreateRequest()
         create_watch.key = utils.to_bytes(key)
         if range_end is not None:
             create_watch.range_end = utils.to_bytes(range_end)
@@ -224,7 +224,7 @@ class Watcher(object):
             create_watch.filters = filters
         if prev_kv:
             create_watch.prev_kv = prev_kv
-        return etcdrpc.WatchRequest(create_request=create_watch)
+        return rpc.WatchRequest(create_request=create_watch)
 
 
 class _NewWatch(object):

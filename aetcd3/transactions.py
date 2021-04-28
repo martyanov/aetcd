@@ -1,12 +1,12 @@
-from . import etcdrpc
+from . import rpc
 from . import utils
 
 
 _OPERATORS = {
-    etcdrpc.Compare.EQUAL: '==',
-    etcdrpc.Compare.NOT_EQUAL: '!=',
-    etcdrpc.Compare.LESS: '<',
-    etcdrpc.Compare.GREATER: '>',
+    rpc.Compare.EQUAL: '==',
+    rpc.Compare.NOT_EQUAL: '!=',
+    rpc.Compare.LESS: '<',
+    rpc.Compare.GREATER: '>',
 }
 
 
@@ -21,22 +21,22 @@ class BaseCompare(object):
     # Version, Mod and Create can only be ints
     def __eq__(self, other):
         self.value = other
-        self.op = etcdrpc.Compare.EQUAL
+        self.op = rpc.Compare.EQUAL
         return self
 
     def __ne__(self, other):
         self.value = other
-        self.op = etcdrpc.Compare.NOT_EQUAL
+        self.op = rpc.Compare.NOT_EQUAL
         return self
 
     def __lt__(self, other):
         self.value = other
-        self.op = etcdrpc.Compare.LESS
+        self.op = rpc.Compare.LESS
         return self
 
     def __gt__(self, other):
         self.value = other
-        self.op = etcdrpc.Compare.GREATER
+        self.op = rpc.Compare.GREATER
         return self
 
     def __repr__(self):
@@ -47,7 +47,7 @@ class BaseCompare(object):
         return f"{self.__class__}: {keys} {_OPERATORS.get(self.op)} '{self.value}'"
 
     def build_message(self):
-        compare = etcdrpc.Compare()
+        compare = rpc.Compare()
         compare.key = utils.to_bytes(self.key)
         if self.range_end is not None:
             compare.range_end = utils.to_bytes(self.range_end)
@@ -63,25 +63,25 @@ class BaseCompare(object):
 
 class Value(BaseCompare):
     def build_compare(self, compare):
-        compare.target = etcdrpc.Compare.VALUE
+        compare.target = rpc.Compare.VALUE
         compare.value = utils.to_bytes(self.value)
 
 
 class Version(BaseCompare):
     def build_compare(self, compare):
-        compare.target = etcdrpc.Compare.VERSION
+        compare.target = rpc.Compare.VERSION
         compare.version = int(self.value)
 
 
 class Create(BaseCompare):
     def build_compare(self, compare):
-        compare.target = etcdrpc.Compare.CREATE
+        compare.target = rpc.Compare.CREATE
         compare.create_revision = int(self.value)
 
 
 class Mod(BaseCompare):
     def build_compare(self, compare):
-        compare.target = etcdrpc.Compare.MOD
+        compare.target = rpc.Compare.MOD
         compare.mod_revision = int(self.value)
 
 

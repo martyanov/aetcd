@@ -8,11 +8,11 @@ import aiofiles
 import grpclib
 import grpclib.client
 
-from . import etcdrpc
 from . import exceptions
 from . import leases
 from . import locks
 from . import members
+from . import rpc
 from . import transactions
 from . import utils
 from . import watch
@@ -198,8 +198,8 @@ class Etcd3Client:
 
         cred_params = [c is not None for c in (self.user, self.password)]
         if all(cred_params):
-            self.auth_stub = etcdrpc.AuthStub(self.channel)
-            auth_request = etcdrpc.AuthenticateRequest(
+            self.auth_stub = rpc.AuthStub(self.channel)
+            auth_request = rpc.AuthenticateRequest(
                 name=self.user,
                 password=self.password,
             )
@@ -207,11 +207,11 @@ class Etcd3Client:
             resp = await self.auth_stub.Authenticate(auth_request, timeout=self.timeout)
             self.metadata = (('token', resp.token),)
 
-        self.kvstub = etcdrpc.KVStub(self.channel)
-        self.watcher = watch.Watcher(etcdrpc.WatchStub(self.channel), timeout=self.timeout)
-        self.clusterstub = etcdrpc.ClusterStub(self.channel)
-        self.leasestub = etcdrpc.LeaseStub(self.channel)
-        self.maintenancestub = etcdrpc.MaintenanceStub(self.channel)
+        self.kvstub = rpc.KVStub(self.channel)
+        self.watcher = watch.Watcher(rpc.WatchStub(self.channel), timeout=self.timeout)
+        self.clusterstub = rpc.ClusterStub(self.channel)
+        self.leasestub = rpc.LeaseStub(self.channel)
+        self.maintenancestub = rpc.MaintenanceStub(self.channel)
 
     async def close(self):
         """Call the GRPC channel close semantics."""
@@ -456,7 +456,7 @@ class Etcd3Client:
     @_ensure_channel
     async def status(self):
         """Get the status of the responding member."""
-        status_request = etcdrpc.StatusRequest()
+        status_request = rpc.StatusRequest()
         status_response = await self.maintenancestub.Status(
             status_request,
             timeout=self.timeout,
@@ -631,9 +631,11 @@ class Etcd3Client:
         success_ops = self._ops_to_requests(success)
         failure_ops = self._ops_to_requests(failure)
 
-        transaction_request = etcdrpc.TxnRequest(compare=compare,
-                                                 success=success_ops,
-                                                 failure=failure_ops)
+        transaction_request = rpc.TxnRequest(
+            compare=compare,
+            success=success_ops,
+            failure=failure_ops,
+        )
         txn_response = await self.kvstub.Txn(
             transaction_request,
             timeout=self.timeout,
@@ -673,7 +675,7 @@ class Etcd3Client:
         :returns: new lease
         :rtype: :class:`.Lease`
         """
-        lease_grant_request = etcdrpc.LeaseGrantRequest(TTL=ttl, ID=lease_id)
+        lease_grant_request = rpc.LeaseGrantRequest(TTL=ttl, ID=lease_id)
         lease_grant_response = await self.leasestub.LeaseGrant(
             lease_grant_request,
             timeout=self.timeout,
@@ -691,7 +693,7 @@ class Etcd3Client:
 
         :param lease_id: ID of the lease to revoke.
         """
-        lease_revoke_request = etcdrpc.LeaseRevokeRequest(ID=lease_id)
+        lease_revoke_request = rpc.LeaseRevokeRequest(ID=lease_id)
         await self.leasestub.LeaseRevoke(
             lease_revoke_request,
             timeout=self.timeout,
@@ -702,7 +704,7 @@ class Etcd3Client:
     @_ensure_channel
     async def refresh_lease(self, lease_id):
         return await self.leasestub.LeaseKeepAlive(
-            [etcdrpc.LeaseKeepAliveRequest(ID=lease_id)],
+            [rpc.LeaseKeepAliveRequest(ID=lease_id)],
             timeout=self.timeout,
             metadata=self.metadata)
 
@@ -710,8 +712,10 @@ class Etcd3Client:
     @_ensure_channel
     async def get_lease_info(self, lease_id, *, keys=True):
         # only available in etcd v3.1.0 and later
-        ttl_request = etcdrpc.LeaseTimeToLiveRequest(ID=lease_id,
-                                                     keys=keys)
+        ttl_request = rpc.LeaseTimeToLiveRequest(
+            ID=lease_id,
+            keys=keys,
+        )
         return await self.leasestub.LeaseTimeToLive(
             ttl_request,
             timeout=self.timeout,
@@ -743,7 +747,7 @@ class Etcd3Client:
         :returns: new member
         :rtype: :class:`members.Member`
         """
-        member_add_request = etcdrpc.MemberAddRequest(peerURLs=urls)
+        member_add_request = rpc.MemberAddRequest(peerURLs=urls)
 
         member_add_response = await self.clusterstub.MemberAdd(
             member_add_request,
@@ -768,7 +772,7 @@ class Etcd3Client:
 
         :param member_id: ID of the member to remove
         """
-        member_rm_request = etcdrpc.MemberRemoveRequest(ID=member_id)
+        member_rm_request = rpc.MemberRemoveRequest(ID=member_id)
         await self.clusterstub.MemberRemove(
             member_rm_request,
             timeout=self.timeout,
@@ -785,8 +789,10 @@ class Etcd3Client:
         :param peer_urls: new list of peer urls the member will use to
                           communicate with the cluster
         """
-        member_update_request = etcdrpc.MemberUpdateRequest(ID=member_id,
-                                                            peerURLs=peer_urls)
+        member_update_request = rpc.MemberUpdateRequest(
+            ID=member_id,
+            peerURLs=peer_urls,
+        )
         await self.clusterstub.MemberUpdate(
             member_update_request,
             timeout=self.timeout,
@@ -801,7 +807,7 @@ class Etcd3Client:
         :type: sequence of :class:`members.Member`
 
         """
-        member_list_request = etcdrpc.MemberListRequest()
+        member_list_request = rpc.MemberListRequest()
         member_list_response = await self.clusterstub.MemberList(
             member_list_request,
             timeout=self.timeout,
@@ -832,8 +838,10 @@ class Etcd3Client:
                          such that compacted entries are totally removed from
                          the backend database
         """
-        compact_request = etcdrpc.CompactionRequest(revision=revision,
-                                                    physical=physical)
+        compact_request = rpc.CompactionRequest(
+            revision=revision,
+            physical=physical,
+        )
         await self.kvstub.Compact(
             compact_request,
             timeout=self.timeout,
@@ -844,7 +852,7 @@ class Etcd3Client:
     @_ensure_channel
     async def defragment(self):
         """Defragment a member's backend database to recover storage space."""
-        defrag_request = etcdrpc.DefragmentRequest()
+        defrag_request = rpc.DefragmentRequest()
         await self.maintenancestub.Defragment(
             defrag_request,
             timeout=self.timeout,
@@ -860,7 +868,7 @@ class Etcd3Client:
         :returns: kv state hash
         :rtype: int
         """
-        hash_request = etcdrpc.HashRequest()
+        hash_request = rpc.HashRequest()
         return (await self.maintenancestub.Hash(hash_request)).hash
 
     @_handle_errors
@@ -940,7 +948,7 @@ class Etcd3Client:
 
         :param file_obj: A file-like object to write the database contents in.
         """
-        snapshot_request = etcdrpc.SnapshotRequest()
+        snapshot_request = rpc.SnapshotRequest()
         snapshot_responses = await self.maintenancestub.Snapshot(
             snapshot_request,
             timeout=self.timeout,
@@ -964,31 +972,31 @@ class Etcd3Client:
                                  max_mod_revision=None,
                                  min_create_revision=None,
                                  max_create_revision=None):
-        range_request = etcdrpc.RangeRequest()
+        range_request = rpc.RangeRequest()
         range_request.key = utils.to_bytes(key)
         range_request.keys_only = keys_only
         if range_end is not None:
             range_request.range_end = utils.to_bytes(range_end)
 
         if sort_order is None:
-            range_request.sort_order = etcdrpc.RangeRequest.NONE
+            range_request.sort_order = rpc.RangeRequest.NONE
         elif sort_order == 'ascend':
-            range_request.sort_order = etcdrpc.RangeRequest.ASCEND
+            range_request.sort_order = rpc.RangeRequest.ASCEND
         elif sort_order == 'descend':
-            range_request.sort_order = etcdrpc.RangeRequest.DESCEND
+            range_request.sort_order = rpc.RangeRequest.DESCEND
         else:
             raise ValueError('unknown sort order: "{}"'.format(sort_order))
 
         if sort_target is None or sort_target == 'key':
-            range_request.sort_target = etcdrpc.RangeRequest.KEY
+            range_request.sort_target = rpc.RangeRequest.KEY
         elif sort_target == 'version':
-            range_request.sort_target = etcdrpc.RangeRequest.VERSION
+            range_request.sort_target = rpc.RangeRequest.VERSION
         elif sort_target == 'create':
-            range_request.sort_target = etcdrpc.RangeRequest.CREATE
+            range_request.sort_target = rpc.RangeRequest.CREATE
         elif sort_target == 'mod':
-            range_request.sort_target = etcdrpc.RangeRequest.MOD
+            range_request.sort_target = rpc.RangeRequest.MOD
         elif sort_target == 'value':
-            range_request.sort_target = etcdrpc.RangeRequest.VALUE
+            range_request.sort_target = rpc.RangeRequest.VALUE
         else:
             raise ValueError('sort_target must be one of "key", '
                              '"version", "create", "mod" or "value"')
@@ -999,7 +1007,7 @@ class Etcd3Client:
 
     @staticmethod
     def _build_put_request(key, value, lease=None, prev_kv=False):
-        put_request = etcdrpc.PutRequest()
+        put_request = rpc.PutRequest()
         put_request.key = utils.to_bytes(key)
         put_request.value = utils.to_bytes(value)
         put_request.lease = utils.lease_to_id(lease)
@@ -1011,7 +1019,7 @@ class Etcd3Client:
     def _build_delete_request(key,
                               range_end=None,
                               prev_kv=False):
-        delete_request = etcdrpc.DeleteRangeRequest()
+        delete_request = rpc.DeleteRangeRequest()
         delete_request.key = utils.to_bytes(key)
         delete_request.prev_kv = prev_kv
 
@@ -1032,28 +1040,30 @@ class Etcd3Client:
             if isinstance(op, transactions.Put):
                 request = self._build_put_request(op.key, op.value,
                                                   op.lease, op.prev_kv)
-                request_op = etcdrpc.RequestOp(request_put=request)
+                request_op = rpc.RequestOp(request_put=request)
                 request_ops.append(request_op)
 
             elif isinstance(op, transactions.Get):
                 request = self._build_get_range_request(op.key, op.range_end)
-                request_op = etcdrpc.RequestOp(request_range=request)
+                request_op = rpc.RequestOp(request_range=request)
                 request_ops.append(request_op)
 
             elif isinstance(op, transactions.Delete):
                 request = self._build_delete_request(op.key, op.range_end,
                                                      op.prev_kv)
-                request_op = etcdrpc.RequestOp(request_delete_range=request)
+                request_op = rpc.RequestOp(request_delete_range=request)
                 request_ops.append(request_op)
 
             elif isinstance(op, transactions.Txn):
                 compare = [c.build_message() for c in op.compare]
                 success_ops = self._ops_to_requests(op.success)
                 failure_ops = self._ops_to_requests(op.failure)
-                request = etcdrpc.TxnRequest(compare=compare,
-                                             success=success_ops,
-                                             failure=failure_ops)
-                request_op = etcdrpc.RequestOp(request_txn=request)
+                request = rpc.TxnRequest(
+                    compare=compare,
+                    success=success_ops,
+                    failure=failure_ops,
+                )
+                request_op = rpc.RequestOp(request_txn=request)
                 request_ops.append(request_op)
 
             else:
@@ -1063,23 +1073,23 @@ class Etcd3Client:
 
     @staticmethod
     def _build_alarm_request(alarm_action, member_id, alarm_type):
-        alarm_request = etcdrpc.AlarmRequest()
+        alarm_request = rpc.AlarmRequest()
 
         if alarm_action == 'get':
-            alarm_request.action = etcdrpc.AlarmRequest.GET
+            alarm_request.action = rpc.AlarmRequest.GET
         elif alarm_action == 'activate':
-            alarm_request.action = etcdrpc.AlarmRequest.ACTIVATE
+            alarm_request.action = rpc.AlarmRequest.ACTIVATE
         elif alarm_action == 'deactivate':
-            alarm_request.action = etcdrpc.AlarmRequest.DEACTIVATE
+            alarm_request.action = rpc.AlarmRequest.DEACTIVATE
         else:
             raise ValueError('Unknown alarm action: {}'.format(alarm_action))
 
         alarm_request.memberID = member_id
 
         if alarm_type == 'none':
-            alarm_request.alarm = etcdrpc.NONE
+            alarm_request.alarm = rpc.NONE
         elif alarm_type == 'no space':
-            alarm_request.alarm = etcdrpc.NOSPACE
+            alarm_request.alarm = rpc.NOSPACE
         else:
             raise ValueError('Unknown alarm type: {}'.format(alarm_type))
 

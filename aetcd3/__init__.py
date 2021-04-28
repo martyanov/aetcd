@@ -1,4 +1,4 @@
-from . import etcdrpc
+from . import rpc
 from .client import Alarm
 from .client import Etcd3Client
 from .client import Transactions
@@ -18,5 +18,5 @@ __all__ = (
     'Member',
     'Transactions',
     'client',
-    'etcdrpc',
+    'rpc',
 )
