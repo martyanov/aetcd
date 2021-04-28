@@ -1,6 +1,7 @@
 from . import etcdrpc
 from . import utils
 
+
 _OPERATORS = {
     etcdrpc.Compare.EQUAL: "==",
     etcdrpc.Compare.NOT_EQUAL: "!=",

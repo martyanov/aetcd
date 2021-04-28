@@ -5,10 +5,8 @@ import tempfile
 import warnings
 
 import aiofiles
-
-import grpclib.exceptions
-from grpclib.client import Channel
-from grpclib.const import Status as grpclibStatus
+import grpclib
+import grpclib.client
 
 from . import etcdrpc
 from . import exceptions
@@ -19,15 +17,16 @@ from . import transactions
 from . import utils
 from . import watch
 
+
 _EXCEPTIONS_BY_CODE = {
-    grpclibStatus.INTERNAL: exceptions.InternalServerError,
-    grpclibStatus.UNAVAILABLE: exceptions.ConnectionFailedError,
-    grpclibStatus.DEADLINE_EXCEEDED: exceptions.ConnectionTimeoutError,
-    grpclibStatus.FAILED_PRECONDITION: exceptions.PreconditionFailedError,
+    grpclib.Status.INTERNAL: exceptions.InternalServerError,
+    grpclib.Status.UNAVAILABLE: exceptions.ConnectionFailedError,
+    grpclib.Status.DEADLINE_EXCEEDED: exceptions.ConnectionTimeoutError,
+    grpclib.Status.FAILED_PRECONDITION: exceptions.PreconditionFailedError,
 }
 
 
-def _translate_exception(error: grpclib.exceptions.GRPCError):
+def _translate_exception(error: grpclib.GRPCError):
     exc = _EXCEPTIONS_BY_CODE.get(error.status)
     if exc is not None:
         raise exc
@@ -84,19 +83,19 @@ def _handle_errors(f):  # noqa: C901
             try:
                 async for data in f(*args, **kwargs):
                     yield data
-            except grpclib.exceptions.GRPCError as exc:
+            except grpclib.GRPCError as exc:
                 _translate_exception(exc)
     elif inspect.iscoroutinefunction(f):
         async def handler(*args, **kwargs):
             try:
                 return await f(*args, **kwargs)
-            except grpclib.exceptions.GRPCError as exc:
+            except grpclib.GRPCError as exc:
                 _translate_exception(exc)
     else:
         def handler(*args, **kwargs):
             try:
                 return f(*args, **kwargs)
-            except grpclib.exceptions.GRPCError as exc:
+            except grpclib.GRPCError as exc:
                 _translate_exception(exc)
 
     return functools.wraps(f)(handler)
@@ -179,7 +178,7 @@ class Etcd3Client:
 
         cert_params = [c is not None for c in (self.cert_cert, self.cert_key)]
         if self.ca_cert is not None:
-            self.channel = Channel(host=self.host, port=self.port, ssl=True)
+            self.channel = grpclib.client.Channel(host=self.host, port=self.port, ssl=True)
 
             if all(cert_params):
                 ca_bundle = tempfile.mktemp()
@@ -195,7 +194,7 @@ class Etcd3Client:
             self.uses_secure_channel = True
         else:
             self.uses_secure_channel = False
-            self.channel = Channel(host=self.host, port=self.port)
+            self.channel = grpclib.client.Channel(host=self.host, port=self.port)
 
         cred_params = [c is not None for c in (self.user, self.password)]
         if all(cred_params):

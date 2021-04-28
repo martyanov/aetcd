@@ -13,10 +13,8 @@ import unittest.mock
 import urllib.parse
 
 import grpclib
-
 import pytest
-
-from tenacity import retry, stop_after_attempt, wait_fixed
+import tenacity
 
 import aetcd3.etcdrpc as etcdrpc
 import aetcd3.exceptions
@@ -72,7 +70,7 @@ class TestEtcd3:
             async with aetcd3.client() as client:
                 yield client
 
-        @retry(wait=wait_fixed(2), stop=stop_after_attempt(3))
+        @tenacity.retry(wait=tenacity.wait_fixed(2), stop=tenacity.stop_after_attempt(3))
         def delete_keys_definitely():
             # clean up after fixture goes out of scope
             etcdctl('del', '--prefix', '/')

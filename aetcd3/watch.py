@@ -102,7 +102,8 @@ class Watcher(object):
             return
 
         async def sender_task(timeout, metadata, run_receiver_fn):
-            async with self._watch_stub.Watch.open(timeout=timeout, metadata=metadata) as stream:
+            async with self._watch_stub.Watch.open(timeout=timeout,
+                                                   metadata=metadata) as stream:
                 while True:
                     request = await self._request_queue.get()
 
