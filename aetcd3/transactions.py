@@ -3,10 +3,10 @@ from . import utils
 
 
 _OPERATORS = {
-    etcdrpc.Compare.EQUAL: "==",
-    etcdrpc.Compare.NOT_EQUAL: "!=",
-    etcdrpc.Compare.LESS: "<",
-    etcdrpc.Compare.GREATER: ">",
+    etcdrpc.Compare.EQUAL: '==',
+    etcdrpc.Compare.NOT_EQUAL: '!=',
+    etcdrpc.Compare.LESS: '<',
+    etcdrpc.Compare.GREATER: '>',
 }
 
 
@@ -43,10 +43,8 @@ class BaseCompare(object):
         if self.range_end is None:
             keys = self.key
         else:
-            keys = "[{}, {})".format(self.key, self.range_end)
-        return "{}: {} {} '{}'".format(self.__class__, keys,
-                                       _OPERATORS.get(self.op),
-                                       self.value)
+            keys = f'[{self.key}, {self.range_end})'
+        return f"{self.__class__}: {keys} {_OPERATORS.get(self.op)} '{self.value}'"
 
     def build_message(self):
         compare = etcdrpc.Compare()

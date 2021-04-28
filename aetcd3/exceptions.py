@@ -12,12 +12,12 @@ class InternalServerError(Etcd3Exception):
 
 class ConnectionFailedError(Etcd3Exception):
     def __str__(self):
-        return "etcd connection failed"
+        return 'etcd connection failed'
 
 
 class ConnectionTimeoutError(Etcd3Exception):
     def __str__(self):
-        return "etcd connection timeout"
+        return 'etcd connection timeout'
 
 
 class PreconditionFailedError(Etcd3Exception):

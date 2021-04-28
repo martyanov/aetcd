@@ -31,7 +31,7 @@ def etcdctl(*args):
     if endpoint:
         args = ['--endpoints', endpoint] + list(args)
     args = ['etcdctl', '-w', 'json'] + list(args)
-    print(" ".join(args))
+    print(' '.join(args))
     output = subprocess.check_output(args)
     return json.loads(output.decode('utf-8'))
 
@@ -86,26 +86,26 @@ class TestEtcd3:
         assert meta is None
 
     @pytest.mark.asyncio
-    async def test_get_key(self, etcd, string="xxx"):
+    async def test_get_key(self, etcd, string='xxx'):
         etcdctl('put', '/doot/a_key', string)
         returned, _ = await etcd.get('/doot/a_key')
         assert returned == string.encode('utf-8')
 
     @pytest.mark.asyncio
-    async def test_get_random_key(self, etcd, string="xxxx"):
+    async def test_get_random_key(self, etcd, string='xxxx'):
         etcdctl('put', '/doot/' + string, 'dootdoot')
         returned, _ = await etcd.get('/doot/' + string)
         assert returned == b'dootdoot'
 
     @pytest.mark.asyncio
-    async def test_get_have_cluster_revision(self, etcd, string="xxx"):
+    async def test_get_have_cluster_revision(self, etcd, string='xxx'):
         etcdctl('put', '/doot/' + string, 'dootdoot')
         _, md = await etcd.get('/doot/' + string)
         assert md.response_header.revision > 0
 
     # @given(characters(blacklist_categories=['Cs', 'Cc']))
     @pytest.mark.asyncio
-    async def test_put_key(self, etcd, string="xxx"):
+    async def test_put_key(self, etcd, string='xxx'):
         await etcd.put('/doot/put_1', string)
         out = etcdctl('get', '/doot/put_1')
         assert base64.b64decode(out['kvs'][0]['value']) == \
@@ -116,7 +116,7 @@ class TestEtcd3:
     #     characters(blacklist_categories=['Cs', 'Cc']),
     # )
     @pytest.mark.asyncio
-    async def test_get_key_serializable(self, etcd, key="foo", string="xxx"):
+    async def test_get_key_serializable(self, etcd, key='foo', string='xxx'):
         etcdctl('put', '/doot/' + key, string)
         with _out_quorum():
             returned, _ = await etcd.get('/doot/' + key, serializable=True)
@@ -124,13 +124,13 @@ class TestEtcd3:
 
     # @given(characters(blacklist_categories=['Cs', 'Cc']))
     @pytest.mark.asyncio
-    async def test_put_has_cluster_revision(self, etcd, string="xxx"):
+    async def test_put_has_cluster_revision(self, etcd, string='xxx'):
         response = await etcd.put('/doot/put_1', string)
         assert response.header.revision > 0
 
     # @given(characters(blacklist_categories=['Cs', 'Cc']))
     @pytest.mark.asyncio
-    async def test_put_has_prev_kv(self, etcd, string="xxxx"):
+    async def test_put_has_prev_kv(self, etcd, string='xxxx'):
         etcdctl('put', '/doot/put_1', 'old_value')
         response = await etcd.put('/doot/put_1', string, prev_kv=True)
         assert response.prev_kv.value == b'old_value'
@@ -207,7 +207,7 @@ class TestEtcd3:
             update_etcd('3')
             time.sleep(1)
 
-        t = threading.Thread(name="update_key", target=update_key)
+        t = threading.Thread(name='update_key', target=update_key)
         t.start()
 
         change_count = 0
@@ -246,7 +246,7 @@ class TestEtcd3:
             update_etcd('2')
             update_etcd('3')
 
-        t = threading.Thread(name="update_key", target=update_key)
+        t = threading.Thread(name='update_key', target=update_key)
         t.start()
 
         async def watch_compacted_revision_test():
@@ -321,7 +321,7 @@ class TestEtcd3:
             @contextlib.asynccontextmanager
             async def slow_watch_mock(*args, **kwargs):
                 await asyncio.sleep(40)
-                yield "foo"
+                yield 'foo'
 
             foo_etcd.watcher._watch_stub.Watch.open = slow_watch_mock  # noqa
 
@@ -350,7 +350,7 @@ class TestEtcd3:
             update_etcd('3')
             time.sleep(1)
 
-        t = threading.Thread(name="update_key_prefix", target=update_key)
+        t = threading.Thread(name='update_key_prefix', target=update_key)
         t.start()
 
         change_count = 0
@@ -377,17 +377,17 @@ class TestEtcd3:
         try:
             await etcd.watch_prefix_once('/doot/', 1)
         except aetcd3.exceptions.WatchTimedOut:
-            print("timeout1")
+            print('timeout1')
             pass
         try:
             await etcd.watch_prefix_once('/doot/', 1)
         except aetcd3.exceptions.WatchTimedOut:
-            print("timeout2")
+            print('timeout2')
             pass
         try:
             await etcd.watch_prefix_once('/doot/', 1)
         except aetcd3.exceptions.WatchTimedOut:
-            print("timeout3")
+            print('timeout3')
             pass
 
     @pytest.mark.asyncio
@@ -419,7 +419,7 @@ class TestEtcd3:
             etcd._ops_to_requests(0)
 
     @pytest.mark.skipif(etcd_version < 'v3.3',
-                        reason="requires etcd v3.3 or higher")
+                        reason='requires etcd v3.3 or higher')
     @pytest.mark.asyncio
     async def test_nested_transactions(self, etcd):
         await etcd.transaction(
@@ -477,7 +477,7 @@ class TestEtcd3:
                                                    keys_only=True)]
         assert len(values) == 20
         for value, meta in values:
-            assert meta.key.startswith(b"/doot/range")
+            assert meta.key.startswith(b'/doot/range')
             assert not value
 
     @pytest.mark.asyncio
@@ -555,14 +555,14 @@ class TestEtcd3:
         await lease.revoke()
 
     @pytest.mark.skipif(etcd_version.startswith('v3.0'),
-                        reason="requires etcd v3.1 or higher")
+                        reason='requires etcd v3.1 or higher')
     @pytest.mark.asyncio
     async def test_lease_keys_empty(self, etcd):
         lease = await etcd.lease(1)
         assert (await lease.keys()) == []
 
     @pytest.mark.skipif(etcd_version.startswith('v3.0'),
-                        reason="requires etcd v3.1 or higher")
+                        reason='requires etcd v3.1 or higher')
     @pytest.mark.asyncio
     async def test_lease_single_key(self, etcd):
         lease = await etcd.lease(1)
@@ -570,7 +570,7 @@ class TestEtcd3:
         assert (await lease.keys()) == [b'/doot/lease_test']
 
     @pytest.mark.skipif(etcd_version.startswith('v3.0'),
-                        reason="requires etcd v3.1 or higher")
+                        reason='requires etcd v3.1 or higher')
     @pytest.mark.asyncio
     async def test_lease_expire(self, etcd):
         key = '/doot/lease_test_expire'
@@ -694,7 +694,7 @@ class TestEtcd3:
         etcd.kvstub = kv_mock
 
         with pytest.raises(aetcd3.exceptions.InternalServerError):
-            await etcd.get("foo")
+            await etcd.get('foo')
 
     @pytest.mark.asyncio
     async def test_connection_failure_exception_on_connection_failure(self, etcd):
@@ -705,7 +705,7 @@ class TestEtcd3:
         etcd.kvstub = kv_mock
 
         with pytest.raises(aetcd3.exceptions.ConnectionFailedError):
-            await etcd.get("foo")
+            await etcd.get('foo')
 
     @pytest.mark.asyncio
     async def test_connection_timeout_exception_on_connection_timeout(self, etcd):
@@ -718,7 +718,7 @@ class TestEtcd3:
         etcd.kvstub = MockKvstub()
 
         with pytest.raises(aetcd3.exceptions.ConnectionTimeoutError):
-            await etcd.get("foo")
+            await etcd.get('foo')
 
     @pytest.mark.asyncio
     async def test_grpc_exception_on_unknown_code(self, etcd):
@@ -728,7 +728,7 @@ class TestEtcd3:
         etcd.kvstub = kv_mock
 
         try:
-            await etcd.get("foo")
+            await etcd.get('foo')
         except grpclib.exceptions.GRPCError:
             pass
         else:
@@ -861,9 +861,9 @@ class TestClient(object):
     @pytest.mark.asyncio
     async def test_secure_channel(self):
         client = aetcd3.client(
-            ca_cert="tests/ca.crt",
-            cert_key="tests/client.key",
-            cert_cert="tests/client.crt",
+            ca_cert='tests/ca.crt',
+            cert_key='tests/client.key',
+            cert_cert='tests/client.crt',
         )
         await client.open()
 
@@ -902,8 +902,8 @@ class TestClient(object):
 
     @pytest.mark.asyncio
     async def test_compact(self, etcd):
-        await etcd.put("/foo", "x")
-        _, meta = await etcd.get("/foo")
+        await etcd.put('/foo', 'x')
+        _, meta = await etcd.get('/foo')
         revision = meta.mod_revision
         await etcd.compact(revision)
         with pytest.raises(grpclib.exceptions.GRPCError):
