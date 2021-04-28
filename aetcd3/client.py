@@ -72,6 +72,7 @@ class Alarm(object):
     :param alarm_type: Type of the alarm
     :param member_id: Cluster member ID
     """
+
     def __init__(self, alarm_type, member_id):
         self.alarm_type = alarm_type
         self.member_id = member_id
