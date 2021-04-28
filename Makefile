@@ -48,17 +48,17 @@ outdated: bootstrap
 	$(PYTHON) -m pip list --outdated --format=columns
 
 genproto: bootstrap
-	sed -i -e '/gogoproto/d' aetcd3/proto/rpc.proto
-	sed -i -e 's/etcd\/mvcc\/mvccpb\/kv.proto/kv.proto/g' aetcd3/proto/rpc.proto
-	sed -i -e 's/etcd\/auth\/authpb\/auth.proto/auth.proto/g' aetcd3/proto/rpc.proto
-	sed -i -e '/google\/api\/annotations.proto/d' aetcd3/proto/rpc.proto
-	sed -i -e '/option (google.api.http)/,+3d' aetcd3/proto/rpc.proto
-	$(PYTHON) -m grpc_tools.protoc -Iaetcd3/proto \
+	sed -i -e '/gogoproto/d' proto/rpc.proto
+	sed -i -e 's/etcd\/mvcc\/mvccpb\/kv.proto/kv.proto/g' proto/rpc.proto
+	sed -i -e 's/etcd\/auth\/authpb\/auth.proto/auth.proto/g' proto/rpc.proto
+	sed -i -e '/google\/api\/annotations.proto/d' proto/rpc.proto
+	sed -i -e '/option (google.api.http)/,+3d' proto/rpc.proto
+	$(PYTHON) -m grpc_tools.protoc -Iproto \
         --plugin=protoc-gen-python_grpc=$(VENV)/bin/protoc-gen-python_grpc \
         --plugin=protoc-gen-grpclib_python=$(VENV)/bin/protoc-gen-grpclib_python \
         --python_out=aetcd3/etcdrpc/ \
         --python_grpc_out=aetcd3/etcdrpc/ \
-        aetcd3/proto/rpc.proto aetcd3/proto/auth.proto aetcd3/proto/kv.proto
+        proto/rpc.proto proto/auth.proto proto/kv.proto
 	sed -i -e 's/import auth_pb2/from . import auth_pb2/g' aetcd3/etcdrpc/rpc_pb2.py
 	sed -i -e 's/import kv_pb2/from . import kv_pb2/g' aetcd3/etcdrpc/rpc_pb2.py
 	sed -i -e 's/import kv_pb2/from . import kv_pb2/g' aetcd3/etcdrpc/rpc_grpc.py
