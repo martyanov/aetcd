@@ -9,8 +9,8 @@ import grpclib.client
 if typing.TYPE_CHECKING:
     import grpclib.server
 
-from . import kv_pb2
 from . import auth_pb2
+from . import kv_pb2
 from . import rpc_pb2
 
 
@@ -244,6 +244,10 @@ class ClusterBase(abc.ABC):
     async def MemberList(self, stream: 'grpclib.server.Stream[rpc_pb2.MemberListRequest, rpc_pb2.MemberListResponse]') -> None:
         pass
 
+    @abc.abstractmethod
+    async def MemberPromote(self, stream: 'grpclib.server.Stream[rpc_pb2.MemberPromoteRequest, rpc_pb2.MemberPromoteResponse]') -> None:
+        pass
+
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
             '/etcdserverpb.Cluster/MemberAdd': grpclib.const.Handler(
@@ -269,6 +273,12 @@ class ClusterBase(abc.ABC):
                 grpclib.const.Cardinality.UNARY_UNARY,
                 rpc_pb2.MemberListRequest,
                 rpc_pb2.MemberListResponse,
+            ),
+            '/etcdserverpb.Cluster/MemberPromote': grpclib.const.Handler(
+                self.MemberPromote,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                rpc_pb2.MemberPromoteRequest,
+                rpc_pb2.MemberPromoteResponse,
             ),
         }
 
@@ -299,6 +309,12 @@ class ClusterStub:
             '/etcdserverpb.Cluster/MemberList',
             rpc_pb2.MemberListRequest,
             rpc_pb2.MemberListResponse,
+        )
+        self.MemberPromote = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/etcdserverpb.Cluster/MemberPromote',
+            rpc_pb2.MemberPromoteRequest,
+            rpc_pb2.MemberPromoteResponse,
         )
 
 

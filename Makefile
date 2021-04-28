@@ -48,11 +48,6 @@ outdated: bootstrap
 	$(PYTHON) -m pip list --outdated --format=columns
 
 genproto: bootstrap
-	sed -i -e '/gogoproto/d' proto/rpc.proto
-	sed -i -e 's/etcd\/mvcc\/mvccpb\/kv.proto/kv.proto/g' proto/rpc.proto
-	sed -i -e 's/etcd\/auth\/authpb\/auth.proto/auth.proto/g' proto/rpc.proto
-	sed -i -e '/google\/api\/annotations.proto/d' proto/rpc.proto
-	sed -i -e '/option (google.api.http)/,+3d' proto/rpc.proto
 	$(PYTHON) -m grpc_tools.protoc -Iproto \
         --plugin=protoc-gen-python_grpc=$(VENV)/bin/protoc-gen-python_grpc \
         --plugin=protoc-gen-grpclib_python=$(VENV)/bin/protoc-gen-grpclib_python \
