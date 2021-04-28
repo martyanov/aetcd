@@ -61,4 +61,4 @@ genproto: bootstrap
 	sed -i -e 's/import rpc_pb2/from . import rpc_pb2/g' aetcd3/etcdrpc/rpc_grpc.py
 
 clean:
-	rm -rf *.egg .eggs *.egg-info .pytest_cache .venv build dist htmlcov
+	rm -rf *.egg .eggs *.egg-info .pytest_cache .venv build coverage.xml dist htmlcov
