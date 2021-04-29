@@ -32,70 +32,18 @@ Installation
 
     $ python3 -m pip install aetcd3
 
-Usage
+Basic usage
 ~~~~~~~~~~~
 
-
-.. code:: python
+.. code-block:: python
 
     import aetcd3
 
-    # Values
-    etcd = aetcd3.client()
-    await etcd.get('foo')
-    await etcd.put('bar', 'doot')
-    await etcd.delete('bar')
+    client = aetcd3.client()
 
-    # Locks
-    lock = etcd.lock('thing')
-    await lock.acquire()
-    # Do something
-    await lock.release()
-
-    # Lock as a context manager
-    async with etcd.lock('doot-machine') as lock:
-        # Do something
-
-    # Transactions
-    await etcd.transaction(
-        compare=[
-            etcd.transactions.value('/doot/testing') == 'doot',
-            etcd.transactions.version('/doot/testing') > 0,
-        ],
-        success=[
-            etcd.transactions.put('/doot/testing', 'success'),
-        ],
-        failure=[
-            etcd.transactions.put('/doot/testing', 'failure'),
-        ],
-    )
-
-    # Watch for key
-    watch_count = 0
-    events_iterator, cancel = await etcd.watch("/doot/watch")
-    async for event in events_iterator:
-        print(event)
-        watch_count += 1
-        if watch_count > 10:
-            await cancel()
-
-    # Watch for key prefix
-    watch_count = 0
-    events_iterator, cancel = await etcd.watch_prefix("/doot/watch/prefix/")
-    async for event in events_iterator:
-        print(event)
-        watch_count += 1
-        if watch_count > 10:
-            await cancel()
-
-    # Receive watch events via a callback function
-    def watch_callback(event):
-        print(event)
-
-    watch_id = await etcd.add_watch_callback("/anotherkey", watch_callback)
-
-    # Cancel watch
-    await etcd.cancel_watch(watch_id)
+    await client.put('foo', 'bar')
+    await client.get('foo')
+    await client.delete('foo')
 
 Acknowledgements
 ~~~~~~~~~~~~~~~~
