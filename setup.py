@@ -36,8 +36,9 @@ setuptools.setup(
         'Programming Language :: Python :: 3.9',
     ],
     project_urls={
-        'Bug Reports': 'https://github.com/martyanov/aetcd3/issues',
-        'Repository': 'https://github.com/martyanov/aetcd3',
+        'Documentation': 'https://aetcd3.readthedocs.io',
+        'Code': 'https://github.com/martyanov/aetcd3',
+        'Issues': 'https://github.com/martyanov/aetcd3/issues',
     },
     python_requires='>=3.8,<4.0',
     setup_requires=[
