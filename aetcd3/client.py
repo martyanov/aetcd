@@ -118,6 +118,8 @@ def _ensure_channel(f):
 
 
 class Etcd3Client:
+    """Client."""
+
     def __init__(
             self,
             host='localhost',

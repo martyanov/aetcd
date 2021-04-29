@@ -26,20 +26,20 @@ If you are reporting a bug, please include:
 Fix Bugs
 ~~~~~~~~
 
-Look through the GitHub issues for bugs. Anything tagged with "bug"
-and "help wanted" is open to whoever wants to implement it.
+Look through the GitHub issues for bugs. Anything tagged with ``bug``
+and ``help wanted`` is open to whoever wants to implement it.
 
 Implement Features
 ~~~~~~~~~~~~~~~~~~
 
-Look through the GitHub issues for features. Anything tagged with "enhancement"
-and "help wanted" is open to whoever wants to implement it.
+Look through the GitHub issues for features. Anything tagged with ``enhancement``
+and ``help wanted`` is open to whoever wants to implement it.
 
 Write Documentation
 ~~~~~~~~~~~~~~~~~~~
 
-aetcd3 could always use more documentation, whether as part of the
-official aetcd3 docs, in docstrings, or even on the web in blog posts,
+``aetcd3`` could always use more documentation, whether as part of the
+official ``aetcd3`` docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Submit Feedback
@@ -52,14 +52,14 @@ If you are proposing a feature:
 * Explain in detail how it would work.
 * Keep the scope as narrow as possible, to make it easier to implement.
 * Remember that this is a volunteer-driven project, and that contributions
-  are welcome :)
+  are welcome! :)
 
 Get Started!
 ------------
 
-Ready to contribute? Here's how to set up `aetcd3` for local development.
+Ready to contribute? Here's how to set up ``aetcd3`` for local development.
 
-1. Fork the `aetcd3` repo on GitHub.
+1. Fork the ``aetcd3`` repo on GitHub.
 
 2. Clone your fork locally::
 
@@ -71,7 +71,7 @@ Ready to contribute? Here's how to set up `aetcd3` for local development.
 
 5.  Make your changes locally.
 
-6. When you're done making changes, check that your changes pass flake8 and tests for all the supported Python versions::
+6. When you're done making changes, check that your changes pass lint and tests for all the supported Python versions::
 
     $ make PYTHON_BIN=python3.9 lint
     $ make PYTHON_BIN=python3.9 test
@@ -91,20 +91,15 @@ Before you submit a pull request, check that it meets these guidelines:
 
 1. The pull request should include tests.
 2. If the pull request adds functionality, the docs should be updated. Put
-   your new functionality into a function with a docstring, and add the
-   feature to the list in README.rst.
-3. The pull request should work for Python 3.7 and 3.8. Check
+   your new functionality into a function with a docstring.
+3. The pull request should work for Python 3.8+. Check
    https://github.com/martyanov/aetcd3/actions
-   and make sure that the tests pass for all supported Python versions.
+   and make sure that the pipelines pass for all supported Python versions.
 
 Generating protobuf stubs
 -------------------------
 
-If the upstream protobuf files changes, copy the stubs::
-
-    $ cp etcd/etcdserver/etcdserverpb/*.proto aetcd3/proto/
-
-Then::
+If the upstream protobuf files change, you can update ``.proto`` files and generate new stubs::
 
     $ make genproto
 
@@ -112,7 +107,7 @@ Then::
 Cutting new releases
 --------------------
 
-The release process to PyPi is automated using travis deploys and bumpversion.
+The release process to PyPi is automated using GitHub Actions.
 
 1. Check changes since the last release:
 
@@ -134,4 +129,4 @@ The release process to PyPi is automated using travis deploys and bumpversion.
        $ git push
        $ git push --tags
 
-4. Wait for travis tests to run and deploy to PyPI
+4. Wait for GitHub Actions jobs to run and deploy to PyPI.

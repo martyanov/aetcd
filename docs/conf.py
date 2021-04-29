@@ -1,3 +1,5 @@
+import importlib.metadata
+
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
@@ -12,8 +14,7 @@ project = 'aetcd3'
 copyright = '2020, Andrey Martyanov'
 author = 'Andrey Martyanov'
 
-version = '0.1.0a2'
-release = '0.1.0a2'
+version = release = importlib.metadata.version('aetcd3')
 
 autodoc_member_order = 'bysource'
 

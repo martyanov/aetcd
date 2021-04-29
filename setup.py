@@ -9,7 +9,7 @@ def _get_long_description():
 setuptools.setup(
     name='aetcd3',
     use_scm_version=True,
-    description='Python asyncio based client for the etcd API v3',
+    description='Python asyncio-based client for etcd',
     long_description=_get_long_description(),
     long_description_content_type='text/x-rst',
     author='Andrey Martyanov',

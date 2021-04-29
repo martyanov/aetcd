@@ -1,5 +1,5 @@
-aetcd3
-======
+Python asyncio-based client for etcd
+====================================
 
 .. image:: https://github.com/martyanov/aetcd3/workflows/build/badge.svg?branch=master
    :alt: Build Status
@@ -32,7 +32,7 @@ Installation
 
     $ python3 -m pip install aetcd3
 
-Basic usage
+Usage
 ~~~~~~~~~~~
 
 
@@ -103,9 +103,9 @@ Acknowledgements
 ~~~~~~~~~~~~~~~~
 
 This project is a fork of `etcd3aio`_, which itself is a fork
-of `python-etcd3`_. `python-etcd3` was originally written by `kragniz`_. `asyncio` suppport
+of `python-etcd3`_. ``python-etcd3`` was originally written by `kragniz`_. ``asyncio`` suppport
 was contributed by `hron`_ and based on the previous work by `gjcarneiro`_. Kudos to all
-the people involved in the projects.
+the people involved in the project.
 
 .. _grpclib: https://github.com/vmagamedov/grpclib
 .. _etcd3aio: https://github.com/hron/etcd3aio

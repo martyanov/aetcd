@@ -7,7 +7,7 @@ class Member:
                      communication
     :param client_urls: List of URLs the cluster member exposes to clients for
                        communication
-    :param etcd_client: Instance of :class:`aetcd3.Etcd3Client`
+    :param etcd_client: Instance of :class:`aetcd3.client.Etcd3Client`
     """
 
     def __init__(self, id, name, peer_urls, client_urls, etcd_client):
@@ -39,6 +39,6 @@ class Member:
     async def active_alarms(self):
         """Get active alarms of the cluster member.
 
-        :returns: List of :class:`aetcd3.Alarm`
+        :returns: List of :class:`aetcd3.client.Alarm`
         """
         return await self._etcd_client.list_alarms(member_id=self.id)

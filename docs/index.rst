@@ -1,20 +1,21 @@
-Welcome to aetcd3's documentation!
-==================================
-
-Contents:
+.. include:: ../README.rst
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
 
-   readme
    installation
    usage
    contributing
    changelog
 
-Indices and tables
-==================
+.. toctree::
+   :maxdepth: 2
+   :hidden:
+   :caption: Reference
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   client
+   events
+   leases
+   locks
+   members
