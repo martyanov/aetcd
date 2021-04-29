@@ -14,8 +14,10 @@
    :hidden:
    :caption: Reference
 
-   client
-   events
-   leases
-   locks
-   members
+   reference/client
+   reference/events
+   reference/exceptions
+   reference/leases
+   reference/locks
+   reference/members
+   reference/utils

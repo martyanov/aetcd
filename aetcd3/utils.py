@@ -9,8 +9,7 @@ def prefix_range_end(prefix):
 
 
 def to_bytes(maybe_bytestring):
-    """
-    Encode string to bytes.
+    """Encode string to bytes.
 
     Convenience function to do a simple encode('utf-8') if the input is not
     already bytes. Returns the data unmodified if the input is bytes.
