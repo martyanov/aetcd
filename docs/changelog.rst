@@ -2,6 +2,18 @@
 Changelog
 =========
 
+0.1.0a7 (2021-04-29)
+--------------------
+
+Internals
+^^^^^^^^^
+
+* Update proto files from upstream etcd 4.3.15
+* Move proto files out of aetcd3 package
+* Improved documentation
+* Setup quotes and import linting
+* Code cleanup
+
 0.1.0a6 (2021-04-27)
 --------------------
 
