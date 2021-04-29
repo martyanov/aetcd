@@ -232,8 +232,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def get(self, key, serializable=False):
-        """
-        Get the value of a key from etcd.
+        """Get the value of a key from etcd.
 
         example usage:
 
@@ -268,8 +267,7 @@ class Etcd3Client:
     @_ensure_channel
     async def get_prefix(self, key_prefix, sort_order=None, sort_target='key',
                          keys_only=False):
-        """
-        Get a range of keys with a prefix.
+        """Get a range of keys with a prefix.
 
         :param key_prefix: first key in range
 
@@ -299,8 +297,7 @@ class Etcd3Client:
     @_ensure_channel
     async def get_range(self, range_start, range_end, sort_order=None,
                         sort_target='key', **kwargs):
-        """
-        Get a range of keys.
+        """Get a range of keys.
 
         :param range_start: first key in range
         :param range_end: last key in range
@@ -330,8 +327,7 @@ class Etcd3Client:
     @_ensure_channel
     async def get_all(self, sort_order=None, sort_target='key',
                       keys_only=False):
-        """
-        Get all keys currently stored in etcd.
+        """Get all keys currently stored in etcd.
 
         :returns: sequence of (value, metadata) tuples
         """
@@ -358,8 +354,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def put(self, key, value, lease=None, prev_kv=False):
-        """
-        Save a value to etcd.
+        """Save a value to etcd.
 
         Example usage:
 
@@ -390,8 +385,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def replace(self, key, initial_value, new_value):
-        """
-        Atomically replace the value of a key with a new value.
+        """Atomically replace the value of a key with a new value.
 
         This compares the current value of a key, then replaces it with a new
         value if it is equal to a specified value. This operation takes place
@@ -407,9 +401,14 @@ class Etcd3Client:
         :rtype: bool
         """
         status, _ = await self.transaction(
-            compare=[self.transactions.value(key) == initial_value],
-            success=[self.transactions.put(key, new_value)],
-            failure=[],
+            compare=[
+                self.transactions.value(key) == initial_value,
+            ],
+            success=[
+                self.transactions.put(key, new_value),
+            ],
+            failure=[
+            ],
         )
 
         return status
@@ -417,8 +416,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def delete(self, key, prev_kv=False, return_response=False):
-        """
-        Delete a single key in etcd.
+        """Delete a single key in etcd.
 
         :param key: key in etcd to delete
         :param prev_kv: return the deleted key-value pair
@@ -482,8 +480,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def add_watch_callback(self, *args, **kwargs):
-        """
-        Watch a key or range of keys and call a callback on every event.
+        """Watch a key or range of keys and call a callback on every event.
 
         If timeout was declared during the client initialization and
         the watch cannot be created during that time the method raises
@@ -502,15 +499,14 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def watch(self, key, **kwargs):
-        """
-        Watch a key.
+        """Watch a key.
 
         Example usage:
 
         .. code-block:: python
 
-            events_iterator, cancel = etcd.watch('/doot/key')
-            for event in events_iterator:
+            events_iterator, cancel = await etcd.watch('/doot/key')
+            async for event in events_iterator:
                 print(event)
 
         :param key: key to watch
@@ -520,8 +516,10 @@ class Etcd3Client:
                   and ``cancel`` to cancel the watch request
         """
         event_queue = asyncio.Queue()
-        watch_id = await self.add_watch_callback(key, event_queue.put,
-                                                 **kwargs)
+        watch_id = await self.add_watch_callback(
+            key, event_queue.put,
+            **kwargs,
+        )
         canceled = asyncio.Event()
 
         async def cancel():
@@ -554,8 +552,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def watch_once(self, key, timeout=None, **kwargs):
-        """
-        Watch a key and stops after the first event.
+        """Watch a key and stops after the first event.
 
         If the timeout was specified and event didn't arrived method
         will raise ``WatchTimedOut`` exception.
@@ -579,8 +576,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def watch_prefix_once(self, key_prefix, timeout=None, **kwargs):
-        """
-        Watches a range of keys with a prefix and stops after the first event.
+        """Watches a range of keys with a prefix and stops after the first event.
 
         If the timeout was specified and event didn't arrived method
         will raise ``WatchTimedOut`` exception.
@@ -591,8 +587,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def cancel_watch(self, watch_id):
-        """
-        Stop watching a key or range of keys.
+        """Stop watching a key or range of keys.
 
         :param watch_id: watch_id returned by ``add_watch_callback`` method
         """
@@ -601,14 +596,13 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def transaction(self, compare, success=None, failure=None):
-        """
-        Perform a transaction.
+        """Perform a transaction.
 
         Example usage:
 
         .. code-block:: python
 
-            etcd.transaction(
+            await etcd.transaction(
                 compare=[
                     etcd.transactions.value('/doot/testing') == 'doot',
                     etcd.transactions.version('/doot/testing') > 0,
@@ -664,8 +658,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def lease(self, ttl, lease_id=None):
-        """
-        Create a new lease.
+        """Create a new lease.
 
         All keys attached to this lease will be expired and deleted if the
         lease expires. A lease can be sent keep alive messages to refresh the
@@ -690,8 +683,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def revoke_lease(self, lease_id):
-        """
-        Revoke a lease.
+        """Revoke a lease.
 
         :param lease_id: ID of the lease to revoke.
         """
@@ -726,8 +718,7 @@ class Etcd3Client:
 
     @_handle_errors
     def lock(self, name, ttl=60):
-        """
-        Create a new lock.
+        """Create a new lock.
 
         :param name: name of the lock
         :type name: string or bytes
@@ -743,8 +734,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def add_member(self, urls):
-        """
-        Add a member into the cluster.
+        """Add a member into the cluster.
 
         :returns: new member
         :rtype: :class:`members.Member`
@@ -769,8 +759,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def remove_member(self, member_id):
-        """
-        Remove an existing member from the cluster.
+        """Remove an existing member from the cluster.
 
         :param member_id: ID of the member to remove
         """
@@ -784,8 +773,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def update_member(self, member_id, peer_urls):
-        """
-        Update the configuration of an existing member in the cluster.
+        """Update the configuration of an existing member in the cluster.
 
         :param member_id: ID of the member to update
         :param peer_urls: new list of peer urls the member will use to
@@ -803,8 +791,7 @@ class Etcd3Client:
 
     @_ensure_channel
     async def members(self):
-        """
-        List of all members associated with the cluster.
+        """List of all members associated with the cluster.
 
         :type: sequence of :class:`members.Member`
 
@@ -828,8 +815,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def compact(self, revision, physical=False):
-        """
-        Compact the event history in etcd up to a given revision.
+        """Compact the event history in etcd up to a given revision.
 
         All superseded keys with a revision less than the compaction revision
         will be removed.
@@ -864,8 +850,7 @@ class Etcd3Client:
     @_handle_errors
     @_ensure_channel
     async def hash(self):
-        """
-        Return the hash of the local KV state.
+        """Return the hash of the local KV state.
 
         :returns: kv state hash
         :rtype: int

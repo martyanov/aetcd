@@ -40,21 +40,23 @@ Usage
 
     import aetcd3
 
+    # Values
     etcd = aetcd3.client()
     await etcd.get('foo')
     await etcd.put('bar', 'doot')
     await etcd.delete('bar')
 
-    # locks
+    # Locks
     lock = etcd.lock('thing')
     await lock.acquire()
-    # do something
+    # Do something
     await lock.release()
 
+    # Lock as a context manager
     async with etcd.lock('doot-machine') as lock:
-        # do something
+        # Do something
 
-    # transactions
+    # Transactions
     await etcd.transaction(
         compare=[
             etcd.transactions.value('/doot/testing') == 'doot',
@@ -68,7 +70,7 @@ Usage
         ],
     )
 
-    # watch key
+    # Watch for key
     watch_count = 0
     events_iterator, cancel = await etcd.watch("/doot/watch")
     async for event in events_iterator:
@@ -77,7 +79,7 @@ Usage
         if watch_count > 10:
             await cancel()
 
-    # watch prefix
+    # Watch for key prefix
     watch_count = 0
     events_iterator, cancel = await etcd.watch_prefix("/doot/watch/prefix/")
     async for event in events_iterator:
@@ -86,18 +88,14 @@ Usage
         if watch_count > 10:
             await cancel()
 
-    # receive watch events via callback function
+    # Receive watch events via a callback function
     def watch_callback(event):
         print(event)
 
     watch_id = await etcd.add_watch_callback("/anotherkey", watch_callback)
 
-    # cancel watch
+    # Cancel watch
     await etcd.cancel_watch(watch_id)
-
-    # receive watch events for a prefix via callback function
-    def watch_callback(event):
-        print(event)
 
 Acknowledgements
 ~~~~~~~~~~~~~~~~
