@@ -28,22 +28,29 @@ Python asyncio-based client for etcd
 Installation
 ~~~~~~~~~~~~
 
-.. code:: bash
+.. code-block:: bash
 
     $ python3 -m pip install aetcd3
 
 Basic usage
 ~~~~~~~~~~~
 
+Run ``asyncio`` REPL:
+
+.. code-block:: bash
+
+    $ python3 -m asyncio
+
+Test the client:
+
 .. code-block:: python
 
     import aetcd3
 
-    client = aetcd3.client()
-
-    await client.put('foo', 'bar')
-    await client.get('foo')
-    await client.delete('foo')
+    async with aetcd3.client() as client:
+        await client.put('foo', 'bar')
+        await client.get('foo')
+        await client.delete('foo')
 
 Acknowledgements
 ~~~~~~~~~~~~~~~~

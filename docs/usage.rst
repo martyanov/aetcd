@@ -20,6 +20,19 @@ This defaults to ``localhost``, but you can specify any ``host`` and ``port``:
 
     client = aetcd3.client(host='etcd-host-01', port=2379)
 
+Don't forget to close the client after use:
+
+.. code-block:: python
+
+    await client.close()
+
+You can also use the client as a context manager:
+
+.. code-block:: python
+
+    async with aetcd3.client() as client:
+        # Do something
+
 
 Values
 ======
