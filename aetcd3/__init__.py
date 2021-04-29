@@ -3,7 +3,9 @@ from .client import Alarm
 from .client import Etcd3Client
 from .client import Transactions
 from .client import client
-from .events import Event, PutEvent, DeleteEvent
+from .events import DeleteEvent
+from .events import Event
+from .events import PutEvent
 from .exceptions import Etcd3Exception
 from .leases import Lease
 from .locks import Lock

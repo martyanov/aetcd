@@ -40,7 +40,6 @@ def new_event(event):
 
     :raises: :class:`Exception`
     """
-
     op_name = event.EventType.DESCRIPTOR.values_by_number[event.type].name
     if op_name == 'PUT':
         cls = PutEvent
