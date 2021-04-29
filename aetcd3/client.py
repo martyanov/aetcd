@@ -560,7 +560,7 @@ class Etcd3Client:
 
         :param key: key to watch
         :param timeout: (optional) timeout in seconds.
-        :returns: ``Event``
+        :returns: :class:`aetcd3.Event`
         """
         event_queue = asyncio.Queue()
 
