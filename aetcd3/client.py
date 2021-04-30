@@ -130,33 +130,34 @@ class Etcd3Client:
             password=None,
             grpc_options=None,
     ):
-        self.host = host
-        self.port = port
-        self.timeout = timeout
-        self.transactions = Transactions()
+        self._host = host
+        self._port = port
+        self._timeout = timeout
 
         if grpc_options:
-            warnings.warn("grpc_options can't be used with asyncio backend")
+            warnings.warn('grpc_options can nott be used with asyncio backend')
 
         cert_params = (cert_cert, cert_key)
         if any(cert_params) and None in cert_params:
             raise ValueError(
-                'to use a secure channel ca_cert is required by itself, '
-                'or cert_cert and cert_key must both be specified.')
+                'To use a secure channel ca_cert is required by itself, '
+                'or cert_cert and cert_key must both be specified')
 
         cred_params = (user, password)
         if any(cred_params) and None in cred_params:
             raise Exception(
-                'if using authentication credentials both user and password '
-                'must be specified.')
+                'If using authentication credentials both user and password '
+                'must be specified')
 
-        self.ca_cert = ca_cert
-        self.cert_key = cert_key
-        self.cert_cert = cert_cert
-        self.user = user
-        self.password = password
+        self._ca_cert = ca_cert
+        self._cert_key = cert_key
+        self._cert_cert = cert_cert
+        self._user = user
+        self._password = password
 
         self._init_channel_attrs()
+
+        self.transactions = Transactions()
 
     def _init_channel_attrs(self):
         # These attributes will be assigned during opening of GRPC channel
@@ -175,39 +176,39 @@ class Etcd3Client:
         if self.channel:
             return
 
-        cert_params = [c is not None for c in (self.cert_cert, self.cert_key)]
-        if self.ca_cert is not None:
-            self.channel = grpclib.client.Channel(host=self.host, port=self.port, ssl=True)
+        cert_params = [c is not None for c in (self._cert_cert, self._cert_key)]
+        if self._ca_cert is not None:
+            self.channel = grpclib.client.Channel(host=self._host, port=self._port, ssl=True)
 
             if all(cert_params):
                 ca_bundle = tempfile.mktemp()
                 async with aiofiles.open(ca_bundle, 'w') as cert_bundle:
-                    for cf_path in (self.cert_cert, self.ca_cert):
+                    for cf_path in (self._cert_cert, self._ca_cert):
                         async with aiofiles.open(cf_path) as cf:
                             await cert_bundle.write(await cf.read())
                     await cert_bundle.flush()
-                    self.channel._ssl.load_cert_chain(ca_bundle, keyfile=self.cert_key)
+                    self.channel._ssl.load_cert_chain(ca_bundle, keyfile=self._cert_key)
             else:
-                self.channel._ssl.load_cert_chain(self.ca_cert, keyfile=self.cert_key)
+                self.channel._ssl.load_cert_chain(self._ca_cert, keyfile=self._cert_key)
 
             self.uses_secure_channel = True
         else:
             self.uses_secure_channel = False
-            self.channel = grpclib.client.Channel(host=self.host, port=self.port)
+            self.channel = grpclib.client.Channel(host=self._host, port=self._port)
 
-        cred_params = [c is not None for c in (self.user, self.password)]
+        cred_params = [c is not None for c in (self._user, self._password)]
         if all(cred_params):
             self.auth_stub = rpc.AuthStub(self.channel)
             auth_request = rpc.AuthenticateRequest(
-                name=self.user,
-                password=self.password,
+                name=self._user,
+                password=self._password,
             )
 
-            resp = await self.auth_stub.Authenticate(auth_request, timeout=self.timeout)
+            resp = await self.auth_stub.Authenticate(auth_request, timeout=self._timeout)
             self.metadata = (('token', resp.token),)
 
         self.kvstub = rpc.KVStub(self.channel)
-        self.watcher = watch.Watcher(rpc.WatchStub(self.channel), timeout=self.timeout)
+        self.watcher = watch.Watcher(rpc.WatchStub(self.channel), timeout=self._timeout)
         self.clusterstub = rpc.ClusterStub(self.channel)
         self.leasestub = rpc.LeaseStub(self.channel)
         self.maintenancestub = rpc.MaintenanceStub(self.channel)
@@ -250,7 +251,7 @@ class Etcd3Client:
             serializable=serializable)
         range_response = await self.kvstub.Range(
             range_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -280,7 +281,7 @@ class Etcd3Client:
 
         range_response = await self.kvstub.Range(
             range_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -310,7 +311,7 @@ class Etcd3Client:
 
         range_response = await self.kvstub.Range(
             range_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -338,7 +339,7 @@ class Etcd3Client:
 
         range_response = await self.kvstub.Range(
             range_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -375,7 +376,7 @@ class Etcd3Client:
                                               prev_kv=prev_kv)
         return await self.kvstub.Put(
             put_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -428,7 +429,7 @@ class Etcd3Client:
         delete_request = self._build_delete_request(key, prev_kv=prev_kv)
         delete_response = await self.kvstub.DeleteRange(
             delete_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
         if return_response:
@@ -445,7 +446,7 @@ class Etcd3Client:
         )
         return await self.kvstub.DeleteRange(
             delete_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -456,7 +457,7 @@ class Etcd3Client:
         status_request = rpc.StatusRequest()
         status_response = await self.maintenancestub.Status(
             status_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -631,7 +632,7 @@ class Etcd3Client:
         )
         txn_response = await self.kvstub.Txn(
             transaction_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -670,7 +671,7 @@ class Etcd3Client:
         lease_grant_request = rpc.LeaseGrantRequest(TTL=ttl, ID=lease_id)
         lease_grant_response = await self.leasestub.LeaseGrant(
             lease_grant_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
         return leases.Lease(lease_id=lease_grant_response.ID,
@@ -687,7 +688,7 @@ class Etcd3Client:
         lease_revoke_request = rpc.LeaseRevokeRequest(ID=lease_id)
         await self.leasestub.LeaseRevoke(
             lease_revoke_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -696,7 +697,7 @@ class Etcd3Client:
     async def refresh_lease(self, lease_id):
         return await self.leasestub.LeaseKeepAlive(
             [rpc.LeaseKeepAliveRequest(ID=lease_id)],
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata)
 
     @_handle_errors
@@ -709,7 +710,7 @@ class Etcd3Client:
         )
         return await self.leasestub.LeaseTimeToLive(
             ttl_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -739,7 +740,7 @@ class Etcd3Client:
 
         member_add_response = await self.clusterstub.MemberAdd(
             member_add_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -762,7 +763,7 @@ class Etcd3Client:
         member_rm_request = rpc.MemberRemoveRequest(ID=member_id)
         await self.clusterstub.MemberRemove(
             member_rm_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -781,7 +782,7 @@ class Etcd3Client:
         )
         await self.clusterstub.MemberUpdate(
             member_update_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -795,7 +796,7 @@ class Etcd3Client:
         member_list_request = rpc.MemberListRequest()
         member_list_response = await self.clusterstub.MemberList(
             member_list_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -828,7 +829,7 @@ class Etcd3Client:
         )
         await self.kvstub.Compact(
             compact_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -839,7 +840,7 @@ class Etcd3Client:
         defrag_request = rpc.DefragmentRequest()
         await self.maintenancestub.Defragment(
             defrag_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -872,7 +873,7 @@ class Etcd3Client:
                                                   'no space')
         alarm_response = await self.maintenancestub.Alarm(
             alarm_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -895,7 +896,7 @@ class Etcd3Client:
                                                   alarm_type)
         alarm_response = await self.maintenancestub.Alarm(
             alarm_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -917,7 +918,7 @@ class Etcd3Client:
                                                   'no space')
         alarm_response = await self.maintenancestub.Alarm(
             alarm_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
@@ -934,7 +935,7 @@ class Etcd3Client:
         snapshot_request = rpc.SnapshotRequest()
         snapshot_responses = await self.maintenancestub.Snapshot(
             snapshot_request,
-            timeout=self.timeout,
+            timeout=self._timeout,
             metadata=self.metadata,
         )
 
