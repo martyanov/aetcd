@@ -133,7 +133,6 @@ class Etcd3Client:
         self.host = host
         self.port = port
         self.timeout = timeout
-        self.call_credentials = None
         self.transactions = Transactions()
 
         if grpc_options:

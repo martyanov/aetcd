@@ -31,11 +31,9 @@ class Watch(object):
 
 class Watcher(object):
 
-    def __init__(self, watchstub, timeout=None, call_credentials=None,
-                 metadata=None):
+    def __init__(self, watchstub, timeout=None, metadata=None):
         self.timeout = timeout
         self._watch_stub = watchstub
-        self._credentials = call_credentials
         self._metadata = metadata
 
         self._lock = asyncio.Lock()
