@@ -33,6 +33,44 @@ def _translate_exception(error: grpclib.GRPCError):
     raise
 
 
+def _handle_errors(f):
+    if inspect.iscoroutinefunction(f):
+        async def handler(*args, **kwargs):
+            try:
+                return await f(*args, **kwargs)
+            except grpclib.GRPCError as exc:
+                _translate_exception(exc)
+    elif inspect.isasyncgenfunction(f):
+        async def handler(*args, **kwargs):
+            try:
+                async for data in f(*args, **kwargs):
+                    yield data
+            except grpclib.GRPCError as exc:
+                _translate_exception(exc)
+    else:
+        raise RuntimeError(
+            f'Provided function {f.__name__!r} is neither a coroutine nor an async generator')
+
+    return functools.wraps(f)(handler)
+
+
+def _ensure_connected(f):
+    if inspect.iscoroutinefunction(f):
+        async def handler(*args, **kwargs):
+            await args[0].open()
+            return await f(*args, **kwargs)
+    elif inspect.isasyncgenfunction(f):
+        async def handler(*args, **kwargs):
+            await args[0].open()
+            async for data in f(*args, **kwargs):
+                yield data
+    else:
+        raise RuntimeError(
+            f'Provided function {f.__name__!r} is neither a coroutine nor an async generator')
+
+    return functools.wraps(f)(handler)
+
+
 class Transactions(object):
     def __init__(self):
         self.value = transactions.Value
@@ -75,46 +113,6 @@ class Alarm(object):
     def __init__(self, alarm_type, member_id):
         self.alarm_type = alarm_type
         self.member_id = member_id
-
-
-def _handle_errors(f):  # noqa: C901
-    if inspect.isasyncgenfunction(f):
-        async def handler(*args, **kwargs):
-            try:
-                async for data in f(*args, **kwargs):
-                    yield data
-            except grpclib.GRPCError as exc:
-                _translate_exception(exc)
-    elif inspect.iscoroutinefunction(f):
-        async def handler(*args, **kwargs):
-            try:
-                return await f(*args, **kwargs)
-            except grpclib.GRPCError as exc:
-                _translate_exception(exc)
-    else:
-        def handler(*args, **kwargs):
-            try:
-                return f(*args, **kwargs)
-            except grpclib.GRPCError as exc:
-                _translate_exception(exc)
-
-    return functools.wraps(f)(handler)
-
-
-def _ensure_channel(f):
-    if inspect.isasyncgenfunction(f):
-        async def handler(*args, **kwargs):
-            await args[0].open()
-            async for data in f(*args, **kwargs):
-                yield data
-    elif inspect.iscoroutinefunction(f):
-        async def handler(*args, **kwargs):
-            await args[0].open()
-            return await f(*args, **kwargs)
-    else:
-        raise TypeError
-
-    return functools.wraps(f)(handler)
 
 
 class Etcd3Client:
@@ -230,7 +228,7 @@ class Etcd3Client:
         await self.close()
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def get(self, key, serializable=False):
         """Get the value of a key from etcd.
 
@@ -264,7 +262,7 @@ class Etcd3Client:
             return kv.value, KVMetadata(kv, range_response.header)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def get_prefix(self, key_prefix, sort_order=None, sort_target='key',
                          keys_only=False):
         """Get a range of keys with a prefix.
@@ -294,7 +292,7 @@ class Etcd3Client:
                 yield (kv.value, KVMetadata(kv, range_response.header))
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def get_range(self, range_start, range_end, sort_order=None,
                         sort_target='key', **kwargs):
         """Get a range of keys.
@@ -324,7 +322,7 @@ class Etcd3Client:
                 yield (kv.value, KVMetadata(kv, range_response.header))
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def get_all(self, sort_order=None, sort_target='key',
                       keys_only=False):
         """Get all keys currently stored in etcd.
@@ -352,7 +350,7 @@ class Etcd3Client:
                 yield (kv.value, KVMetadata(kv, range_response.header))
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def put(self, key, value, lease=None, prev_kv=False):
         """Save a value to etcd.
 
@@ -383,7 +381,7 @@ class Etcd3Client:
         )
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def replace(self, key, initial_value, new_value):
         """Atomically replace the value of a key with a new value.
 
@@ -414,7 +412,7 @@ class Etcd3Client:
         return status
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def delete(self, key, prev_kv=False, return_response=False):
         """Delete a single key in etcd.
 
@@ -439,7 +437,7 @@ class Etcd3Client:
         return delete_response.deleted >= 1
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def delete_prefix(self, prefix):
         """Delete a range of keys with a prefix in etcd."""
         delete_request = self._build_delete_request(
@@ -453,7 +451,7 @@ class Etcd3Client:
         )
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def status(self):
         """Get the status of the responding member."""
         status_request = rpc.StatusRequest()
@@ -478,7 +476,7 @@ class Etcd3Client:
                       status_response.raftTerm)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def add_watch_callback(self, *args, **kwargs):
         """Watch a key or range of keys and call a callback on every event.
 
@@ -497,7 +495,7 @@ class Etcd3Client:
             raise exceptions.WatchTimedOut()
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def watch(self, key, **kwargs):
         """Watch a key.
 
@@ -542,7 +540,7 @@ class Etcd3Client:
         return iterator(), cancel
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def watch_prefix(self, key_prefix, **kwargs):
         """Watches a range of keys with a prefix."""
         kwargs['range_end'] = \
@@ -550,7 +548,7 @@ class Etcd3Client:
         return await self.watch(key_prefix, **kwargs)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def watch_once(self, key, timeout=None, **kwargs):
         """Watch a key and stops after the first event.
 
@@ -574,7 +572,7 @@ class Etcd3Client:
             await self.cancel_watch(watch_id)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def watch_prefix_once(self, key_prefix, timeout=None, **kwargs):
         """Watches a range of keys with a prefix and stops after the first event.
 
@@ -585,7 +583,7 @@ class Etcd3Client:
         return await self.watch_once(key_prefix, timeout=timeout, **kwargs)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def cancel_watch(self, watch_id):
         """Stop watching a key or range of keys.
 
@@ -594,7 +592,7 @@ class Etcd3Client:
         await self.watcher.cancel(watch_id)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def transaction(self, compare, success=None, failure=None):
         """Perform a transaction.
 
@@ -656,7 +654,7 @@ class Etcd3Client:
         return txn_response.succeeded, responses
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def lease(self, ttl, lease_id=None):
         """Create a new lease.
 
@@ -681,7 +679,7 @@ class Etcd3Client:
                             etcd_client=self)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def revoke_lease(self, lease_id):
         """Revoke a lease.
 
@@ -695,7 +693,7 @@ class Etcd3Client:
         )
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def refresh_lease(self, lease_id):
         return await self.leasestub.LeaseKeepAlive(
             [rpc.LeaseKeepAliveRequest(ID=lease_id)],
@@ -703,7 +701,7 @@ class Etcd3Client:
             metadata=self.metadata)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def get_lease_info(self, lease_id, *, keys=True):
         # only available in etcd v3.1.0 and later
         ttl_request = rpc.LeaseTimeToLiveRequest(
@@ -716,7 +714,6 @@ class Etcd3Client:
             metadata=self.metadata,
         )
 
-    @_handle_errors
     def lock(self, name, ttl=60):
         """Create a new lock.
 
@@ -732,7 +729,7 @@ class Etcd3Client:
         return locks.Lock(name, ttl=ttl, etcd_client=self)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def add_member(self, urls):
         """Add a member into the cluster.
 
@@ -757,7 +754,7 @@ class Etcd3Client:
         )
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def remove_member(self, member_id):
         """Remove an existing member from the cluster.
 
@@ -771,7 +768,7 @@ class Etcd3Client:
         )
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def update_member(self, member_id, peer_urls):
         """Update the configuration of an existing member in the cluster.
 
@@ -789,7 +786,7 @@ class Etcd3Client:
             metadata=self.metadata,
         )
 
-    @_ensure_channel
+    @_ensure_connected
     async def members(self):
         """List of all members associated with the cluster.
 
@@ -813,7 +810,7 @@ class Etcd3Client:
             )
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def compact(self, revision, physical=False):
         """Compact the event history in etcd up to a given revision.
 
@@ -837,7 +834,7 @@ class Etcd3Client:
         )
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def defragment(self):
         """Defragment a member's backend database to recover storage space."""
         defrag_request = rpc.DefragmentRequest()
@@ -848,7 +845,7 @@ class Etcd3Client:
         )
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def hash(self):
         """Return the hash of the local KV state.
 
@@ -859,7 +856,7 @@ class Etcd3Client:
         return (await self.maintenancestub.Hash(hash_request)).hash
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def create_alarm(self, member_id=0):
         """Create an alarm.
 
@@ -884,7 +881,7 @@ class Etcd3Client:
                 for alarm in alarm_response.alarms]
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def list_alarms(self, member_id=0, alarm_type='none'):
         """List the activated alarms.
 
@@ -907,7 +904,7 @@ class Etcd3Client:
             yield Alarm(alarm.alarm, alarm.memberID)
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def disarm_alarm(self, member_id=0):
         """Cancel an alarm.
 
@@ -929,7 +926,7 @@ class Etcd3Client:
                 for alarm in alarm_response.alarms]
 
     @_handle_errors
-    @_ensure_channel
+    @_ensure_connected
     async def snapshot(self, file_obj):
         """Take a snapshot of the database.
 
