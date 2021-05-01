@@ -191,6 +191,7 @@ class Etcd3Client:
             else:
                 self.channel._ssl.load_cert_chain(self._ca_cert, keyfile=self._cert_key)
 
+            self.channel._ssl.load_verify_locations(cafile=self.ca_cert)
             self.uses_secure_channel = True
         else:
             self.uses_secure_channel = False
