@@ -1,0 +1,87 @@
+name: build
+
+on: ['push']
+
+jobs:
+  lint:
+    name: Run lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python_version: ['3.8', '3.9']
+    steps:
+    - name: Checkout source repository for Python ${{ matrix.python_version }}
+      uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python_version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python_version }}
+
+    - name: Run lint on Python ${{ matrix.python_version }}
+      run: make lint
+
+  test:
+    name: Run tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python_version: ['3.8', '3.9']
+    steps:
+      - name: Checkout source repository for Python ${{ matrix.python_version }}
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Set up dependencies for Python ${{ matrix.python_version }}
+        run: |
+          sudo apt install etcd
+          sudo systemctl stop etcd
+          make bootstrap
+
+      - name: Run tests on Python ${{ matrix.python_version }}
+        run: make testcluster
+
+      - name: Run genproto
+        run: |
+          make genproto
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v2
+        if: matrix.python_version == '3.9' && github.ref == 'refs/heads/master'
+
+  distrib:
+    name: Build and upload the packages
+    needs: [lint, test]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python_version: ['3.9']
+
+    steps:
+      - name: Checkout source repository for Python ${{ matrix.python_version }}
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python_version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Build the packages
+        run: make build
+
+      - name: Upload built packages to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
