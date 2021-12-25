@@ -127,6 +127,12 @@ service Maintenance {
   // MoveLeader requests current leader node to transfer its leadership to transferee.
   rpc MoveLeader(MoveLeaderRequest) returns (MoveLeaderResponse) {
   }
+
+  // Downgrade requests downgrades, verifies feasibility or cancels downgrade
+  // on the cluster version.
+  // Supported since etcd 3.5.
+  rpc Downgrade(DowngradeRequest) returns (DowngradeResponse) {
+  }
 }
 
 service Auth {
@@ -136,6 +142,10 @@ service Auth {
 
   // AuthDisable disables authentication.
   rpc AuthDisable(AuthDisableRequest) returns (AuthDisableResponse) {
+  }
+
+  // AuthStatus displays authentication status.
+  rpc AuthStatus(AuthStatusRequest) returns (AuthStatusResponse) {
   }
 
   // Authenticate processes an authenticate request.
@@ -211,16 +221,16 @@ message ResponseHeader {
 
 message RangeRequest {
   enum SortOrder {
-    NONE = 0; // default, no sorting
-    ASCEND = 1; // lowest target value first
-    DESCEND = 2; // highest target value first
+	NONE = 0; // default, no sorting
+	ASCEND = 1; // lowest target value first
+	DESCEND = 2; // highest target value first
   }
   enum SortTarget {
-    KEY = 0;
-    VERSION = 1;
-    CREATE = 2;
-    MOD = 3;
-    VALUE = 4;
+	KEY = 0;
+	VERSION = 1;
+	CREATE = 2;
+	MOD = 3;
+	VALUE = 4;
   }
 
   // key is the first key for the range. If range_end is not given, the request only looks up key.
@@ -724,6 +734,7 @@ message MemberUpdateResponse{
 }
 
 message MemberListRequest {
+  bool linearizable = 1;
 }
 
 message MemberListResponse {
@@ -760,16 +771,16 @@ message MoveLeaderResponse {
 }
 
 enum AlarmType {
-  NONE = 0; // default, used to query if any alarm is active
-  NOSPACE = 1; // space quota is exhausted
-  CORRUPT = 2; // kv store corruption detected
+	NONE = 0; // default, used to query if any alarm is active
+	NOSPACE = 1; // space quota is exhausted
+	CORRUPT = 2; // kv store corruption detected
 }
 
 message AlarmRequest {
   enum AlarmAction {
-    GET = 0;
-    ACTIVATE = 1;
-    DEACTIVATE = 2;
+	GET = 0;
+	ACTIVATE = 1;
+	DEACTIVATE = 2;
   }
   // action is the kind of alarm request to issue. The action
   // may GET alarm statuses, ACTIVATE an alarm, or DEACTIVATE a
@@ -793,6 +804,27 @@ message AlarmResponse {
   ResponseHeader header = 1;
   // alarms is a list of alarms associated with the alarm request.
   repeated AlarmMember alarms = 2;
+}
+
+message DowngradeRequest {
+  enum DowngradeAction {
+    VALIDATE = 0;
+    ENABLE = 1;
+    CANCEL = 2;
+  }
+
+  // action is the kind of downgrade request to issue. The action may
+  // VALIDATE the target version, DOWNGRADE the cluster version,
+  // or CANCEL the current downgrading job.
+  DowngradeAction action = 1;
+  // version is the target version to downgrade.
+  string version = 2;
+}
+
+message DowngradeResponse {
+  ResponseHeader header = 1;
+  // version is the current cluster version.
+  string version = 2;
 }
 
 message StatusRequest {
@@ -826,6 +858,9 @@ message AuthEnableRequest {
 message AuthDisableRequest {
 }
 
+message AuthStatusRequest {
+}
+
 message AuthenticateRequest {
   string name = 1;
   string password = 2;
@@ -835,6 +870,7 @@ message AuthUserAddRequest {
   string name = 1;
   string password = 2;
   authpb.UserAddOptions options = 3;
+  string hashedPassword = 4;
 }
 
 message AuthUserGetRequest {
@@ -849,8 +885,10 @@ message AuthUserDeleteRequest {
 message AuthUserChangePasswordRequest {
   // name is the name of the user whose password is being changed.
   string name = 1;
-  // password is the new password for the user.
+  // password is the new password for the user. Note that this field will be removed in the API layer.
   string password = 2;
+  // hashedPassword is the new password for the user. Note that this field will be initialized in the API layer.
+  string hashedPassword = 3;
 }
 
 message AuthUserGrantRoleRequest {
@@ -903,6 +941,13 @@ message AuthEnableResponse {
 
 message AuthDisableResponse {
   ResponseHeader header = 1;
+}
+
+message AuthStatusResponse {
+  ResponseHeader header = 1;
+  bool enabled = 2;
+  // authRevision is the current revision of auth store
+  uint64 authRevision = 3;
 }
 
 message AuthenticateResponse {

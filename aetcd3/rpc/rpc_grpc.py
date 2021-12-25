@@ -348,6 +348,10 @@ class MaintenanceBase(abc.ABC):
     async def MoveLeader(self, stream: 'grpclib.server.Stream[rpc_pb2.MoveLeaderRequest, rpc_pb2.MoveLeaderResponse]') -> None:
         pass
 
+    @abc.abstractmethod
+    async def Downgrade(self, stream: 'grpclib.server.Stream[rpc_pb2.DowngradeRequest, rpc_pb2.DowngradeResponse]') -> None:
+        pass
+
     def __mapping__(self) -> typing.Dict[str, grpclib.const.Handler]:
         return {
             '/etcdserverpb.Maintenance/Alarm': grpclib.const.Handler(
@@ -391,6 +395,12 @@ class MaintenanceBase(abc.ABC):
                 grpclib.const.Cardinality.UNARY_UNARY,
                 rpc_pb2.MoveLeaderRequest,
                 rpc_pb2.MoveLeaderResponse,
+            ),
+            '/etcdserverpb.Maintenance/Downgrade': grpclib.const.Handler(
+                self.Downgrade,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                rpc_pb2.DowngradeRequest,
+                rpc_pb2.DowngradeResponse,
             ),
         }
 
@@ -440,6 +450,12 @@ class MaintenanceStub:
             rpc_pb2.MoveLeaderRequest,
             rpc_pb2.MoveLeaderResponse,
         )
+        self.Downgrade = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/etcdserverpb.Maintenance/Downgrade',
+            rpc_pb2.DowngradeRequest,
+            rpc_pb2.DowngradeResponse,
+        )
 
 
 class AuthBase(abc.ABC):
@@ -450,6 +466,10 @@ class AuthBase(abc.ABC):
 
     @abc.abstractmethod
     async def AuthDisable(self, stream: 'grpclib.server.Stream[rpc_pb2.AuthDisableRequest, rpc_pb2.AuthDisableResponse]') -> None:
+        pass
+
+    @abc.abstractmethod
+    async def AuthStatus(self, stream: 'grpclib.server.Stream[rpc_pb2.AuthStatusRequest, rpc_pb2.AuthStatusResponse]') -> None:
         pass
 
     @abc.abstractmethod
@@ -521,6 +541,12 @@ class AuthBase(abc.ABC):
                 grpclib.const.Cardinality.UNARY_UNARY,
                 rpc_pb2.AuthDisableRequest,
                 rpc_pb2.AuthDisableResponse,
+            ),
+            '/etcdserverpb.Auth/AuthStatus': grpclib.const.Handler(
+                self.AuthStatus,
+                grpclib.const.Cardinality.UNARY_UNARY,
+                rpc_pb2.AuthStatusRequest,
+                rpc_pb2.AuthStatusResponse,
             ),
             '/etcdserverpb.Auth/Authenticate': grpclib.const.Handler(
                 self.Authenticate,
@@ -623,6 +649,12 @@ class AuthStub:
             '/etcdserverpb.Auth/AuthDisable',
             rpc_pb2.AuthDisableRequest,
             rpc_pb2.AuthDisableResponse,
+        )
+        self.AuthStatus = grpclib.client.UnaryUnaryMethod(
+            channel,
+            '/etcdserverpb.Auth/AuthStatus',
+            rpc_pb2.AuthStatusRequest,
+            rpc_pb2.AuthStatusResponse,
         )
         self.Authenticate = grpclib.client.UnaryUnaryMethod(
             channel,
