@@ -72,7 +72,7 @@ class Lock(object):
             # try:
             #     await self.etcd_client.watch_once(self.key,
             #                                       remaining_timeout)
-            # except exceptions.WatchTimedOut:
+            # except exceptions.WatchTimeoutError:
             #     pass
             return 0
 

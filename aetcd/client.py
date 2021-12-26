@@ -483,7 +483,7 @@ class Client:
 
         If timeout was declared during the client initialization and
         the watch cannot be created during that time the method raises
-        a ``WatchTimedOut`` exception.
+        a ``WatchTimeoutError`` exception.
 
         :param key: key to watch
         :param callback: callback function
@@ -493,7 +493,7 @@ class Client:
         try:
             return await self.watcher.add_callback(*args, **kwargs)
         except asyncio.QueueEmpty:
-            raise exceptions.WatchTimedOut()
+            raise exceptions.WatchTimeoutError
 
     @_handle_errors
     @_ensure_connected
@@ -554,7 +554,7 @@ class Client:
         """Watch a key and stops after the first event.
 
         If the timeout was specified and event didn't arrived method
-        will raise ``WatchTimedOut`` exception.
+        will raise ``WatchTimeoutError`` exception.
 
         :param key: key to watch
         :param timeout: (optional) timeout in seconds.
@@ -568,7 +568,7 @@ class Client:
         try:
             return await asyncio.wait_for(event_queue.get(), timeout)
         except (asyncio.QueueEmpty, asyncio.TimeoutError):
-            raise exceptions.WatchTimedOut()
+            raise exceptions.WatchTimeoutError
         finally:
             await self.cancel_watch(watch_id)
 
@@ -578,7 +578,7 @@ class Client:
         """Watches a range of keys with a prefix and stops after the first event.
 
         If the timeout was specified and event didn't arrived method
-        will raise ``WatchTimedOut`` exception.
+        will raise ``WatchTimeoutError`` exception.
         """
         kwargs['range_end'] = utils.prefix_range_end(utils.to_bytes(key_prefix))
         return await self.watch_once(key_prefix, timeout=timeout, **kwargs)

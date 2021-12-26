@@ -325,7 +325,7 @@ class TestEtcd3:
 
             foo_etcd.watcher._watch_stub.Watch.open = slow_watch_mock  # noqa
 
-            with pytest.raises(aetcd.exceptions.WatchTimedOut):
+            with pytest.raises(aetcd.exceptions.WatchTimeoutError):
                 events_iterator, cancel = await foo_etcd.watch('foo')
                 async for _ in events_iterator:
                     pass
@@ -376,17 +376,17 @@ class TestEtcd3:
     async def test_sequential_watch_prefix_once(self, etcd):
         try:
             await etcd.watch_prefix_once('/doot/', 1)
-        except aetcd.exceptions.WatchTimedOut:
+        except aetcd.exceptions.WatchTimeoutError:
             print('timeout1')
             pass
         try:
             await etcd.watch_prefix_once('/doot/', 1)
-        except aetcd.exceptions.WatchTimedOut:
+        except aetcd.exceptions.WatchTimeoutError:
             print('timeout2')
             pass
         try:
             await etcd.watch_prefix_once('/doot/', 1)
-        except aetcd.exceptions.WatchTimedOut:
+        except aetcd.exceptions.WatchTimeoutError:
             print('timeout3')
             pass
 
