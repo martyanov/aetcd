@@ -58,11 +58,11 @@ def _handle_errors(f):
 def _ensure_connected(f):
     if inspect.iscoroutinefunction(f):
         async def handler(*args, **kwargs):
-            await args[0].open()
+            await args[0].connect()
             return await f(*args, **kwargs)
     elif inspect.isasyncgenfunction(f):
         async def handler(*args, **kwargs):
-            await args[0].open()
+            await args[0].connect()
             async for data in f(*args, **kwargs):
                 yield data
     else:
@@ -172,8 +172,8 @@ class Client:
         self.leasestub = None
         self.maintenancestub = None
 
-    async def open(self):
-        """Open GRPC channel."""
+    async def connect(self):
+        """Establish a connection to an etcd."""
         if self.channel:
             return
 
@@ -215,14 +215,14 @@ class Client:
         self.maintenancestub = rpc.MaintenanceStub(self.channel)
 
     async def close(self):
-        """Call the GRPC channel close semantics."""
+        """Close all connections and free allocated resources."""
         if self.channel:
             self.watcher.close()
             self.channel.close()
             self._init_channel_attrs()
 
     async def __aenter__(self):
-        await self.open()
+        await self.connect()
         return self
 
     async def __aexit__(self, *args):
