@@ -43,7 +43,7 @@ Once you have a copy of the source, you can install it with:
 
 .. code-block:: console
 
-    $ python3 setup.py install
+    $ python setup.py install
 
 .. _GitHub repository: https://github.com/martyanov/aetcd
 .. _tarball: https://github.com/martyanov/aetcd/tarball/master

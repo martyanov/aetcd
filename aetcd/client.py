@@ -2,6 +2,7 @@ import asyncio
 import functools
 import inspect
 import tempfile
+import typing
 import warnings
 
 import aiofiles
@@ -115,27 +116,29 @@ class Alarm(object):
         self.member_id = member_id
 
 
-class Etcd3Client:
-    """Client."""
+class Client:
+    """Client provides and manages a client session."""
 
     def __init__(
             self,
-            host='localhost',
-            port=2379,
+            host: str = 'localhost',
+            port: int = 2379,
+            username: str = None,
+            password: str = None,
+            timeout: int = None,
             ca_cert=None,
             cert_key=None,
             cert_cert=None,
-            timeout=None,
-            user=None,
-            password=None,
-            grpc_options=None,
+            grpc_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ):
         self._host = host
         self._port = port
+        self._username = username
+        self._password = password
         self._timeout = timeout
 
-        if grpc_options:
-            warnings.warn('grpc_options can nott be used with asyncio backend')
+        if grpc_options is not None:
+            warnings.warn('gRPC options are not supported for now')
 
         cert_params = (cert_cert, cert_key)
         if any(cert_params) and None in cert_params:
@@ -143,17 +146,15 @@ class Etcd3Client:
                 'To use a secure channel ca_cert is required by itself, '
                 'or cert_cert and cert_key must both be specified')
 
-        cred_params = (user, password)
+        cred_params = (self._username, self._password)
         if any(cred_params) and None in cred_params:
             raise Exception(
-                'If using authentication credentials both user and password '
-                'must be specified')
+                'If using authentication credentials both username and password '
+                'must be provided')
 
         self._ca_cert = ca_cert
         self._cert_key = cert_key
         self._cert_cert = cert_cert
-        self._user = user
-        self._password = password
 
         self._init_channel_attrs()
 
@@ -196,11 +197,11 @@ class Etcd3Client:
             self.uses_secure_channel = False
             self.channel = grpclib.client.Channel(host=self._host, port=self._port)
 
-        cred_params = [c is not None for c in (self._user, self._password)]
+        cred_params = [c is not None for c in (self._username, self._password)]
         if all(cred_params):
             self.auth_stub = rpc.AuthStub(self.channel)
             auth_request = rpc.AuthenticateRequest(
-                name=self._user,
+                name=self._username,
                 password=self._password,
             )
 
@@ -237,7 +238,7 @@ class Etcd3Client:
         .. code-block:: python
 
             import aetcd
-            etcd = aetcd.client()
+            etcd = aetcd.Client()
             await etcd.get('/thing/key')
 
         :param key: key in etcd to get
@@ -359,7 +360,7 @@ class Etcd3Client:
         .. code-block:: python
 
             import aetcd
-            etcd = aetcd.client()
+            etcd = aetcd.Client()
             await etcd.put('/thing/key', 'hello world')
 
         :param key: key in etcd to set
@@ -1078,28 +1079,3 @@ class Etcd3Client:
             raise ValueError('Unknown alarm type: {}'.format(alarm_type))
 
         return alarm_request
-
-
-def client(
-        host='localhost',
-        port=2379,
-        ca_cert=None,
-        cert_key=None,
-        cert_cert=None,
-        timeout=None,
-        user=None,
-        password=None,
-        **kwargs,
-):
-    """Return an instance of an Etcd3Client."""
-    return Etcd3Client(
-        host=host,
-        port=port,
-        ca_cert=ca_cert,
-        cert_key=cert_key,
-        cert_cert=cert_cert,
-        timeout=timeout,
-        user=user,
-        password=password,
-        **kwargs,
-    )

@@ -3,7 +3,7 @@ class Lease(object):
 
     :param id: ID of the lease
     :param ttl: time to live for this lease
-    :param etcd_client: Instance of :class:`aetcd.Etcd3Client`
+    :param etcd_client: Instance of :class:`aetcd.client.Client`
     """
 
     def __init__(self, lease_id, ttl, etcd_client):

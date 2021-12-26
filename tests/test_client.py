@@ -60,14 +60,14 @@ class TestEtcd3:
         timeout = 5
         if endpoint:
             url = urllib.parse.urlparse(endpoint)
-            with aetcd.client(
+            with aetcd.Client(
                 host=url.hostname,
                 port=url.port,
                 timeout=timeout,
             ) as client:
                 yield client
         else:
-            async with aetcd.client() as client:
+            async with aetcd.Client() as client:
                 yield client
 
         @tenacity.retry(wait=tenacity.wait_fixed(2), stop=tenacity.stop_after_attempt(3))
@@ -317,7 +317,7 @@ class TestEtcd3:
 
     @pytest.mark.asyncio
     async def test_watch_timeout_on_establishment(self):
-        async with aetcd.client(timeout=3) as foo_etcd:
+        async with aetcd.Client(timeout=3) as foo_etcd:
             @contextlib.asynccontextmanager
             async def slow_watch_mock(*args, **kwargs):
                 await asyncio.sleep(40)
@@ -757,7 +757,7 @@ class TestEtcd3:
 class TestAlarms(object):
     @pytest.fixture
     async def etcd(self):
-        etcd = aetcd.client()
+        etcd = aetcd.Client()
         yield etcd
         await etcd.disarm_alarm()
         async for m in etcd.members():
@@ -823,7 +823,7 @@ class TestUtils(object):
 class TestClient(object):
     @pytest.fixture
     def etcd(self):
-        yield aetcd.client()
+        yield aetcd.Client()
 
     def test_sort_target(self, etcd):
         key = 'key'.encode('utf-8')
@@ -860,7 +860,7 @@ class TestClient(object):
 
     @pytest.mark.asyncio
     async def test_secure_channel(self):
-        client = aetcd.client(
+        client = aetcd.Client(
             ca_cert='tests/ca.crt',
             cert_key='tests/client.key',
             cert_cert='tests/client.crt',
@@ -876,7 +876,7 @@ class TestClient(object):
                 with open(f'tests/{fname}', 'r+b') as f:
                     certfile_bundle.write(f.read())
             certfile_bundle.flush()
-            client = aetcd.client(
+            client = aetcd.Client(
                 ca_cert=certfile_bundle.name,
                 cert_key=None,
                 cert_cert=None,
@@ -887,14 +887,14 @@ class TestClient(object):
 
     def test_secure_channel_ca_cert_and_key_raise_exception(self):
         with pytest.raises(ValueError):
-            aetcd.client(
+            aetcd.Client(
                 ca_cert='tests/ca.crt',
                 cert_key='tests/client.crt',
                 cert_cert=None,
             )
 
         with pytest.raises(ValueError):
-            aetcd.client(
+            aetcd.Client(
                 ca_cert='tests/ca.crt',
                 cert_key=None,
                 cert_cert='tests/client.crt',
@@ -911,7 +911,7 @@ class TestClient(object):
 
     @pytest.mark.asyncio
     async def test_channel_with_no_cert(self):
-        client = aetcd.client(
+        client = aetcd.Client(
             ca_cert=None,
             cert_key=None,
             cert_cert=None,
@@ -921,21 +921,21 @@ class TestClient(object):
         assert client.uses_secure_channel is False
 
     @pytest.mark.asyncio
-    async def test_user_pwd_auth(self):
+    async def test_username_password_auth(self):
         with self._enabled_auth_in_etcd():
             # Create a client using username and password auth
-            client = aetcd.client(
-                user='root',
+            client = aetcd.Client(
+                username='root',
                 password='pwd',
             )
             await client.get('probably-invalid-key')
 
-    def test_user_or_pwd_auth_raises_exception(self):
-        with pytest.raises(Exception, match='both user and password'):
-            aetcd.client(user='usr')
+    def test_username_or_password_auth_raises_exception(self):
+        with pytest.raises(Exception, match='both username and password'):
+            aetcd.Client(username='usr')
 
-        with pytest.raises(Exception, match='both user and password'):
-            aetcd.client(password='pwd')
+        with pytest.raises(Exception, match='both username and password'):
+            aetcd.Client(password='pwd')
 
     @staticmethod
     @contextlib.contextmanager

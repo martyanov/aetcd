@@ -7,7 +7,7 @@ class Member:
                      communication
     :param client_urls: List of URLs the cluster member exposes to clients for
                        communication
-    :param etcd_client: Instance of :class:`aetcd.client.Etcd3Client`
+    :param etcd_client: Instance of :class:`aetcd.client.Client`
     """
 
     def __init__(self, id, name, peer_urls, client_urls, etcd_client):

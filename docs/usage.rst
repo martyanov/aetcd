@@ -12,13 +12,13 @@ and then create a client:
 
 .. code-block:: python
 
-    client = aetcd.client()
+    client = aetcd.Client()
 
 This defaults to ``localhost``, but you can specify any ``host`` and ``port``:
 
 .. code-block:: python
 
-    client = aetcd.client(host='etcd-host-01', port=2379)
+    client = aetcd.Client(host='etcd-host-01', port=2379)
 
 Don't forget to close the client after use:
 
@@ -30,7 +30,7 @@ You can also use the client as a context manager:
 
 .. code-block:: python
 
-    async with aetcd.client() as client:
+    async with aetcd.Client() as client:
         # Do something
 
 
