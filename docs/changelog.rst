@@ -2,6 +2,23 @@
 Changelog
 =========
 
+1.0.0a1 (2021-12-26)
+--------------------
+
+API changes
+^^^^^^^^^^^
+
+* Rename the package to aetcd
+* Remove client helper and rename ``Etcd3Client`` to ``Client``
+* Rename ``Client.open`` to ``Client.connect``, this is a more appropriate name
+* Refactor exception names and provide them via base package imports, see the docs for details
+
+Internals
+^^^^^^^^^
+
+* Bump the project dependencies
+* Update proto files from upstream etcd 3.5.1
+
 0.1.0a7 (2021-04-29)
 --------------------
 
