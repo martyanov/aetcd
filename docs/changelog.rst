@@ -9,7 +9,7 @@ Internals
 ^^^^^^^^^
 
 * Update proto files from upstream etcd 4.3.15
-* Move proto files out of aetcd3 package
+* Move proto files out of aetcd package
 * Improved documentation
 * Setup quotes and import linting
 * Code cleanup

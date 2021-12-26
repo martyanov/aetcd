@@ -7,21 +7,21 @@ def _get_long_description():
 
 
 setuptools.setup(
-    name='aetcd3',
+    name='aetcd',
     use_scm_version=True,
     description='Python asyncio-based client for etcd',
     long_description=_get_long_description(),
     long_description_content_type='text/x-rst',
     author='Andrey Martyanov',
     author_email='andrey@martyanov.com',
-    url='https://github.com/martyanov/aetcd3',
+    url='https://github.com/martyanov/aetcd',
     packages=[
-        'aetcd3',
-        'aetcd3.rpc',
+        'aetcd',
+        'aetcd.rpc',
     ],
     package_dir={
-        'aetcd3': 'aetcd3',
-        'aetcd3.rpc': 'aetcd3/rpc',
+        'aetcd': 'aetcd',
+        'aetcd.rpc': 'aetcd/rpc',
     },
     include_package_data=True,
     license='Apache Software License 2.0',
@@ -36,9 +36,9 @@ setuptools.setup(
         'Programming Language :: Python :: 3.9',
     ],
     project_urls={
-        'Documentation': 'https://aetcd3.readthedocs.io',
-        'Code': 'https://github.com/martyanov/aetcd3',
-        'Issues': 'https://github.com/martyanov/aetcd3/issues',
+        'Documentation': 'https://aetcd.readthedocs.io',
+        'Code': 'https://github.com/martyanov/aetcd',
+        'Issues': 'https://github.com/martyanov/aetcd/issues',
     },
     python_requires='>=3.8,<4.0',
     setup_requires=[

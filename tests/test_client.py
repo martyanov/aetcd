@@ -16,9 +16,9 @@ import grpclib
 import pytest
 import tenacity
 
-import aetcd3.exceptions
-import aetcd3.rpc as rpc
-import aetcd3.utils as utils
+import aetcd.exceptions
+import aetcd.rpc as rpc
+import aetcd.utils as utils
 
 
 etcd_version = os.environ.get('TEST_ETCD_VERSION', 'v3.2.8')
@@ -60,14 +60,14 @@ class TestEtcd3:
         timeout = 5
         if endpoint:
             url = urllib.parse.urlparse(endpoint)
-            with aetcd3.client(
+            with aetcd.client(
                 host=url.hostname,
                 port=url.port,
                 timeout=timeout,
             ) as client:
                 yield client
         else:
-            async with aetcd3.client() as client:
+            async with aetcd.client() as client:
                 yield client
 
         @tenacity.retry(wait=tenacity.wait_fixed(2), stop=tenacity.stop_after_attempt(3))
@@ -260,7 +260,7 @@ class TestEtcd3:
             except Exception as err:
                 error_raised = True
                 assert isinstance(err,
-                                  aetcd3.exceptions.RevisionCompactedError)
+                                  aetcd.exceptions.RevisionCompactedError)
                 compacted_revision = err.compacted_revision
 
             assert error_raised is True
@@ -309,7 +309,7 @@ class TestEtcd3:
 
         events_iterator, cancel = await etcd.watch('foo')
 
-        with pytest.raises(aetcd3.exceptions.ConnectionFailedError):
+        with pytest.raises(aetcd.exceptions.ConnectionFailedError):
             async for _ in events_iterator:
                 _
 
@@ -317,7 +317,7 @@ class TestEtcd3:
 
     @pytest.mark.asyncio
     async def test_watch_timeout_on_establishment(self):
-        async with aetcd3.client(timeout=3) as foo_etcd:
+        async with aetcd.client(timeout=3) as foo_etcd:
             @contextlib.asynccontextmanager
             async def slow_watch_mock(*args, **kwargs):
                 await asyncio.sleep(40)
@@ -325,7 +325,7 @@ class TestEtcd3:
 
             foo_etcd.watcher._watch_stub.Watch.open = slow_watch_mock  # noqa
 
-            with pytest.raises(aetcd3.exceptions.WatchTimedOut):
+            with pytest.raises(aetcd.exceptions.WatchTimedOut):
                 events_iterator, cancel = await foo_etcd.watch('foo')
                 async for _ in events_iterator:
                     pass
@@ -376,17 +376,17 @@ class TestEtcd3:
     async def test_sequential_watch_prefix_once(self, etcd):
         try:
             await etcd.watch_prefix_once('/doot/', 1)
-        except aetcd3.exceptions.WatchTimedOut:
+        except aetcd.exceptions.WatchTimedOut:
             print('timeout1')
             pass
         try:
             await etcd.watch_prefix_once('/doot/', 1)
-        except aetcd3.exceptions.WatchTimedOut:
+        except aetcd.exceptions.WatchTimedOut:
             print('timeout2')
             pass
         try:
             await etcd.watch_prefix_once('/doot/', 1)
-        except aetcd3.exceptions.WatchTimedOut:
+        except aetcd.exceptions.WatchTimedOut:
             print('timeout3')
             pass
 
@@ -693,7 +693,7 @@ class TestEtcd3:
         kv_mock.Range.side_effect = exception
         etcd.kvstub = kv_mock
 
-        with pytest.raises(aetcd3.exceptions.InternalServerError):
+        with pytest.raises(aetcd.exceptions.InternalServerError):
             await etcd.get('foo')
 
     @pytest.mark.asyncio
@@ -704,7 +704,7 @@ class TestEtcd3:
         kv_mock.Range.side_effect = exception
         etcd.kvstub = kv_mock
 
-        with pytest.raises(aetcd3.exceptions.ConnectionFailedError):
+        with pytest.raises(aetcd.exceptions.ConnectionFailedError):
             await etcd.get('foo')
 
     @pytest.mark.asyncio
@@ -717,7 +717,7 @@ class TestEtcd3:
 
         etcd.kvstub = MockKvstub()
 
-        with pytest.raises(aetcd3.exceptions.ConnectionTimeoutError):
+        with pytest.raises(aetcd.exceptions.ConnectionTimeoutError):
             await etcd.get('foo')
 
     @pytest.mark.asyncio
@@ -738,7 +738,7 @@ class TestEtcd3:
     async def test_status_member(self, etcd):
         status = await etcd.status()
 
-        assert isinstance(status.leader, aetcd3.members.Member) is True
+        assert isinstance(status.leader, aetcd.members.Member) is True
         assert status.leader.id in [m.id async for m in etcd.members()]
 
     @pytest.mark.asyncio
@@ -757,7 +757,7 @@ class TestEtcd3:
 class TestAlarms(object):
     @pytest.fixture
     async def etcd(self):
-        etcd = aetcd3.client()
+        etcd = aetcd.client()
         yield etcd
         await etcd.disarm_alarm()
         async for m in etcd.members():
@@ -811,19 +811,19 @@ class TestAlarms(object):
 
 class TestUtils(object):
     def test_prefix_range_end(self):
-        assert aetcd3.utils.prefix_range_end(b'foo') == b'fop'
+        assert aetcd.utils.prefix_range_end(b'foo') == b'fop'
 
     def test_to_bytes(self):
-        assert isinstance(aetcd3.utils.to_bytes(b'doot'), bytes) is True
-        assert isinstance(aetcd3.utils.to_bytes('doot'), bytes) is True
-        assert aetcd3.utils.to_bytes(b'doot') == b'doot'
-        assert aetcd3.utils.to_bytes('doot') == b'doot'
+        assert isinstance(aetcd.utils.to_bytes(b'doot'), bytes) is True
+        assert isinstance(aetcd.utils.to_bytes('doot'), bytes) is True
+        assert aetcd.utils.to_bytes(b'doot') == b'doot'
+        assert aetcd.utils.to_bytes('doot') == b'doot'
 
 
 class TestClient(object):
     @pytest.fixture
     def etcd(self):
-        yield aetcd3.client()
+        yield aetcd.client()
 
     def test_sort_target(self, etcd):
         key = 'key'.encode('utf-8')
@@ -860,7 +860,7 @@ class TestClient(object):
 
     @pytest.mark.asyncio
     async def test_secure_channel(self):
-        client = aetcd3.client(
+        client = aetcd.client(
             ca_cert='tests/ca.crt',
             cert_key='tests/client.key',
             cert_cert='tests/client.crt',
@@ -876,7 +876,7 @@ class TestClient(object):
                 with open(f'tests/{fname}', 'r+b') as f:
                     certfile_bundle.write(f.read())
             certfile_bundle.flush()
-            client = aetcd3.client(
+            client = aetcd.client(
                 ca_cert=certfile_bundle.name,
                 cert_key=None,
                 cert_cert=None,
@@ -887,14 +887,14 @@ class TestClient(object):
 
     def test_secure_channel_ca_cert_and_key_raise_exception(self):
         with pytest.raises(ValueError):
-            aetcd3.client(
+            aetcd.client(
                 ca_cert='tests/ca.crt',
                 cert_key='tests/client.crt',
                 cert_cert=None,
             )
 
         with pytest.raises(ValueError):
-            aetcd3.client(
+            aetcd.client(
                 ca_cert='tests/ca.crt',
                 cert_key=None,
                 cert_cert='tests/client.crt',
@@ -911,7 +911,7 @@ class TestClient(object):
 
     @pytest.mark.asyncio
     async def test_channel_with_no_cert(self):
-        client = aetcd3.client(
+        client = aetcd.client(
             ca_cert=None,
             cert_key=None,
             cert_cert=None,
@@ -924,7 +924,7 @@ class TestClient(object):
     async def test_user_pwd_auth(self):
         with self._enabled_auth_in_etcd():
             # Create a client using username and password auth
-            client = aetcd3.client(
+            client = aetcd.client(
                 user='root',
                 password='pwd',
             )
@@ -932,10 +932,10 @@ class TestClient(object):
 
     def test_user_or_pwd_auth_raises_exception(self):
         with pytest.raises(Exception, match='both user and password'):
-            aetcd3.client(user='usr')
+            aetcd.client(user='usr')
 
         with pytest.raises(Exception, match='both user and password'):
-            aetcd3.client(password='pwd')
+            aetcd.client(password='pwd')
 
     @staticmethod
     @contextlib.contextmanager
@@ -956,7 +956,7 @@ class TestCompares(object):
 
     def test_compare_version(self):
         key = 'key'
-        tx = aetcd3.Transactions()
+        tx = aetcd.Transactions()
 
         version_compare = tx.version(key) == 1
         assert version_compare.op == rpc.Compare.EQUAL
@@ -974,7 +974,7 @@ class TestCompares(object):
 
     def test_compare_value(self):
         key = 'key'
-        tx = aetcd3.Transactions()
+        tx = aetcd.Transactions()
 
         value_compare = tx.value(key) == 'b'
         assert value_compare.op == rpc.Compare.EQUAL
@@ -991,7 +991,7 @@ class TestCompares(object):
 
     def test_compare_mod(self):
         key = 'key'
-        tx = aetcd3.Transactions()
+        tx = aetcd.Transactions()
 
         mod_compare = tx.mod(key) == -100
         assert mod_compare.op == rpc.Compare.EQUAL
@@ -1008,7 +1008,7 @@ class TestCompares(object):
 
     def test_compare_create(self):
         key = 'key'
-        tx = aetcd3.Transactions()
+        tx = aetcd.Transactions()
 
         create_compare = tx.create(key) == 10
         assert create_compare.op == rpc.Compare.EQUAL

@@ -1,5 +1,5 @@
 Leases
 ======
 
-.. automodule:: aetcd3.leases
+.. automodule:: aetcd.leases
     :members:

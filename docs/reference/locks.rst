@@ -1,5 +1,5 @@
 Locks
 =====
 
-.. automodule:: aetcd3.locks
+.. automodule:: aetcd.locks
     :members:

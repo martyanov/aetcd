@@ -1,5 +1,5 @@
 Utils
 =====
 
-.. automodule:: aetcd3.utils
+.. automodule:: aetcd.utils
     :members:

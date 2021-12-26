@@ -10,11 +10,11 @@ templates_path = []
 source_suffix = '.rst'
 master_doc = 'index'
 
-project = 'aetcd3'
-copyright = '2020, Andrey Martyanov'
+project = 'aetcd'
+copyright = '2021, Andrey Martyanov'
 author = 'Andrey Martyanov'
 
-version = release = importlib.metadata.version('aetcd3')
+version = release = importlib.metadata.version('aetcd')
 
 autodoc_member_order = 'bysource'
 

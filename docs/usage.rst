@@ -2,23 +2,23 @@
 Usage
 =====
 
-To use ``aetcd3`` in your project:
+To use ``aetcd`` in your project:
 
 .. code-block:: python
 
-    import aetcd3
+    import aetcd
 
 and then create a client:
 
 .. code-block:: python
 
-    client = aetcd3.client()
+    client = aetcd.client()
 
 This defaults to ``localhost``, but you can specify any ``host`` and ``port``:
 
 .. code-block:: python
 
-    client = aetcd3.client(host='etcd-host-01', port=2379)
+    client = aetcd.client(host='etcd-host-01', port=2379)
 
 Don't forget to close the client after use:
 
@@ -30,7 +30,7 @@ You can also use the client as a context manager:
 
 .. code-block:: python
 
-    async with aetcd3.client() as client:
+    async with aetcd.client() as client:
         # Do something
 
 

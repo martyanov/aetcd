@@ -236,8 +236,8 @@ class Etcd3Client:
 
         .. code-block:: python
 
-            import aetcd3
-            etcd = aetcd3.client()
+            import aetcd
+            etcd = aetcd.client()
             await etcd.get('/thing/key')
 
         :param key: key in etcd to get
@@ -358,8 +358,8 @@ class Etcd3Client:
 
         .. code-block:: python
 
-            import aetcd3
-            etcd = aetcd3.client()
+            import aetcd
+            etcd = aetcd.client()
             await etcd.put('/thing/key', 'hello world')
 
         :param key: key in etcd to set
@@ -557,7 +557,7 @@ class Etcd3Client:
 
         :param key: key to watch
         :param timeout: (optional) timeout in seconds.
-        :returns: :class:`aetcd3.Event`
+        :returns: :class:`aetcd.Event`
         """
         event_queue = asyncio.Queue()
 

@@ -1,5 +1,5 @@
 Client
 ======
 
-.. automodule:: aetcd3.client
+.. automodule:: aetcd.client
     :members:

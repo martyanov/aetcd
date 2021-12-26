@@ -1,5 +1,5 @@
 Events
 ======
 
-.. automodule:: aetcd3.events
+.. automodule:: aetcd.events
     :members:

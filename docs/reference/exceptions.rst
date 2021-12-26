@@ -1,5 +1,5 @@
 Exceptions
 ==========
 
-.. automodule:: aetcd3.exceptions
+.. automodule:: aetcd.exceptions
     :members:

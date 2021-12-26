@@ -1,5 +1,5 @@
 Members
 =======
 
-.. automodule:: aetcd3.members
+.. automodule:: aetcd.members
     :members:
