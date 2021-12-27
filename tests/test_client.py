@@ -21,8 +21,6 @@ import aetcd.rpc as rpc
 import aetcd.utils as utils
 
 
-etcd_version = os.environ.get('TEST_ETCD_VERSION', 'v3.2.8')
-
 os.environ['ETCDCTL_API'] = '3'
 
 
@@ -411,8 +409,6 @@ class TestEtcd3:
         with pytest.raises(TypeError):
             etcd._ops_to_requests(0)
 
-    @pytest.mark.skipif(etcd_version < 'v3.3',
-                        reason='requires etcd v3.3 or higher')
     @pytest.mark.asyncio
     async def test_nested_transactions(self, etcd):
         await etcd.transaction(
@@ -547,23 +543,17 @@ class TestEtcd3:
         lease = await etcd.lease(1)
         await lease.revoke()
 
-    @pytest.mark.skipif(etcd_version.startswith('v3.0'),
-                        reason='requires etcd v3.1 or higher')
     @pytest.mark.asyncio
     async def test_lease_keys_empty(self, etcd):
         lease = await etcd.lease(1)
         assert (await lease.keys()) == []
 
-    @pytest.mark.skipif(etcd_version.startswith('v3.0'),
-                        reason='requires etcd v3.1 or higher')
     @pytest.mark.asyncio
     async def test_lease_single_key(self, etcd):
         lease = await etcd.lease(1)
         await etcd.put('/doot/lease_test', 'this is a lease', lease=lease)
         assert (await lease.keys()) == [b'/doot/lease_test']
 
-    @pytest.mark.skipif(etcd_version.startswith('v3.0'),
-                        reason='requires etcd v3.1 or higher')
     @pytest.mark.asyncio
     async def test_lease_expire(self, etcd):
         key = '/doot/lease_test_expire'
