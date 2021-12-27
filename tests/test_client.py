@@ -852,48 +852,6 @@ class TestClient(object):
             etcd._build_get_range_request(key, sort_order='feelsbadman')
 
     @pytest.mark.asyncio
-    async def test_secure_channel(self):
-        client = aetcd.Client(
-            ca_cert='tests/ca.crt',
-            cert_key='tests/client.key',
-            cert_cert='tests/client.crt',
-        )
-        await client.connect()
-
-        assert client.uses_secure_channel is True
-
-    @pytest.mark.asyncio
-    async def test_secure_channel_ca_cert_only(self):
-        with tempfile.NamedTemporaryFile() as certfile_bundle:
-            for fname in ('client.crt', 'ca.crt', 'client.key'):
-                with open(f'tests/{fname}', 'r+b') as f:
-                    certfile_bundle.write(f.read())
-            certfile_bundle.flush()
-            client = aetcd.Client(
-                ca_cert=certfile_bundle.name,
-                cert_key=None,
-                cert_cert=None,
-            )
-            await client.connect()
-
-            assert client.uses_secure_channel is True
-
-    def test_secure_channel_ca_cert_and_key_raise_exception(self):
-        with pytest.raises(ValueError):
-            aetcd.Client(
-                ca_cert='tests/ca.crt',
-                cert_key='tests/client.crt',
-                cert_cert=None,
-            )
-
-        with pytest.raises(ValueError):
-            aetcd.Client(
-                ca_cert='tests/ca.crt',
-                cert_key=None,
-                cert_cert='tests/client.crt',
-            )
-
-    @pytest.mark.asyncio
     async def test_compact(self, etcd):
         await etcd.put('/foo', 'x')
         _, meta = await etcd.get('/foo')
@@ -901,17 +859,6 @@ class TestClient(object):
         await etcd.compact(revision)
         with pytest.raises(grpclib.exceptions.GRPCError):
             await etcd.compact(revision)
-
-    @pytest.mark.asyncio
-    async def test_channel_with_no_cert(self):
-        client = aetcd.Client(
-            ca_cert=None,
-            cert_key=None,
-            cert_cert=None,
-        )
-        await client.connect()
-
-        assert client.uses_secure_channel is False
 
     @pytest.mark.asyncio
     async def test_username_password_auth(self):

@@ -134,12 +134,6 @@ class Client:
     :param str password:
         Password to be used for authentication.
 
-    :param ca_cert: (EXPERIMENTAL)
-
-    :param cert_key: (EXPERIMENTAL)
-
-    :param cert_cert: (EXPERIMENTAL)
-
     :param dict grpc_options:
         (UNIMPLEMENTED) Options provided to underlying gRPC channel.
 
@@ -154,9 +148,6 @@ class Client:
         username: typing.Optional[str] = None,
         password: typing.Optional[str] = None,
         timeout: typing.Optional[int] = None,
-        ca_cert: typing.Optional[str] = None,
-        cert_key: typing.Optional[str] = None,
-        cert_cert: typing.Optional[str] = None,
         grpc_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ):
         self._host = host
@@ -168,22 +159,6 @@ class Client:
         if grpc_options is not None:
             warnings.warn('gRPC options are not supported for now')
 
-        cert_params = (cert_cert, cert_key)
-        if any(cert_params) and None in cert_params:
-            raise ValueError(
-                'to use a secure channel ca_cert is required by itself, '
-                'or cert_cert and cert_key must both be specified')
-
-        cred_params = (self._username, self._password)
-        if any(cred_params) and None in cred_params:
-            raise Exception(
-                'if using authentication credentials both username and password '
-                'must be provided')
-
-        self._ca_cert = ca_cert
-        self._cert_key = cert_key
-        self._cert_cert = cert_cert
-
         self._init_channel_attrs()
 
         self.transactions = Transactions()
@@ -192,7 +167,6 @@ class Client:
         # These attributes will be assigned during opening of GRPC channel
         self.channel = None
         self.metadata = None
-        self.uses_secure_channel = None
         self.auth_stub = None
         self.kvstub = None
         self.watcher = None
@@ -205,25 +179,7 @@ class Client:
         if self.channel:
             return
 
-        cert_params = [c is not None for c in (self._cert_cert, self._cert_key)]
-        if self._ca_cert is not None:
-            self.channel = grpclib.client.Channel(host=self._host, port=self._port, ssl=True)
-
-            if all(cert_params):
-                ca_bundle = tempfile.mktemp()
-                async with aiofiles.open(ca_bundle, 'w') as cert_bundle:
-                    for cf_path in (self._cert_cert, self._ca_cert):
-                        async with aiofiles.open(cf_path) as cf:
-                            await cert_bundle.write(await cf.read())
-                    await cert_bundle.flush()
-                    self.channel._ssl.load_cert_chain(ca_bundle, keyfile=self._cert_key)
-            else:
-                self.channel._ssl.load_cert_chain(self._ca_cert, keyfile=self._cert_key)
-
-            self.uses_secure_channel = True
-        else:
-            self.uses_secure_channel = False
-            self.channel = grpclib.client.Channel(host=self._host, port=self._port)
+        self.channel = grpclib.client.Channel(host=self._host, port=self._port)
 
         cred_params = [c is not None for c in (self._username, self._password)]
         if all(cred_params):
