@@ -1,11 +1,9 @@
 import asyncio
 import functools
 import inspect
-import tempfile
 import typing
 import warnings
 
-import aiofiles
 import grpclib
 import grpclib.client
 
