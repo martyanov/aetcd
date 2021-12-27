@@ -732,7 +732,7 @@ class Client:
         async for reply in self.leasestub.LeaseKeepAlive(
             [rpc.LeaseKeepAliveRequest(ID=lease_id)],
             timeout=self._timeout,
-                metadata=self.metadata,
+            metadata=self.metadata,
         ):
             return reply
 
