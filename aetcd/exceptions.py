@@ -25,14 +25,12 @@ class PreconditionFailedError(ClientError):
 
 
 class RevisionCompactedError(ClientError):
-    """Raises when requested and previous revisions were already compacted.
-
-    :param compacted_revision: Revision bellow values were compacted
-    :type compacted_revision: int
-    """
+    """Raises when requested and previous revisions were already compacted."""
 
     def __init__(self, compacted_revision):
+        #: Revision bellow values were compacted.
         self.compacted_revision = compacted_revision
+
         super(RevisionCompactedError, self).__init__()
 
 

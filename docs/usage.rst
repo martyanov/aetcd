@@ -110,9 +110,9 @@ Watch for key:
 .. code-block:: python
 
     watch_count = 0
-    events_iterator, cancel = await client.watch('foo')
+    events, cancel = await client.watch('foo')
 
-    async for event in events_iterator:
+    async for event in events:
         print(event)
         watch_count += 1
         if watch_count > 10:
@@ -123,9 +123,9 @@ Watch for key prefix:
 .. code-block:: python
 
     watch_count = 0
-    events_iterator, cancel = await client.watch_prefix('foo')
+    events, cancel = await client.watch_prefix('foo')
 
-    async for event in events_iterator:
+    async for event in events:
         print(event)
         watch_count += 1
         if watch_count > 10:

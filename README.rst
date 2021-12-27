@@ -39,7 +39,7 @@ Run ``asyncio`` REPL:
 
 .. code-block:: bash
 
-    $ python3 -m asyncio
+    $ python -m asyncio
 
 Test the client:
 

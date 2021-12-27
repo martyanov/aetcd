@@ -107,8 +107,11 @@ class Status(object):
 class Alarm(object):
     """A cluster member alarm.
 
-    :param alarm_type: Type of the alarm
-    :param member_id: Cluster member ID
+    :param alarm_type:
+        Type of the alarm.
+
+    :param member_id:
+        Cluster member ID.
     """
 
     def __init__(self, alarm_type, member_id):
@@ -117,19 +120,44 @@ class Alarm(object):
 
 
 class Client:
-    """Client provides and manages a client session."""
+    """Client provides and manages a client session.
+
+    :param str host:
+        etcd host address, as IP address or a domain name.
+
+    :param int port:
+        etcd port number to connect to.
+
+    :param str username:
+        The name of the  user used for authentication.
+
+    :param str password:
+        Password to be used for authentication.
+
+    :param ca_cert: (EXPERIMENTAL)
+
+    :param cert_key: (EXPERIMENTAL)
+
+    :param cert_cert: (EXPERIMENTAL)
+
+    :param dict grpc_options:
+        (UNIMPLEMENTED) Options provided to underlying gRPC channel.
+
+    :return:
+        A :class:`~aetcd.client.Client` instance.
+    """
 
     def __init__(
-            self,
-            host: str = 'localhost',
-            port: int = 2379,
-            username: str = None,
-            password: str = None,
-            timeout: int = None,
-            ca_cert=None,
-            cert_key=None,
-            cert_cert=None,
-            grpc_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        self,
+        host: str = 'localhost',
+        port: int = 2379,
+        username: typing.Optional[str] = None,
+        password: typing.Optional[str] = None,
+        timeout: typing.Optional[int] = None,
+        ca_cert: typing.Optional[str] = None,
+        cert_key: typing.Optional[str] = None,
+        cert_cert: typing.Optional[str] = None,
+        grpc_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ):
         self._host = host
         self._port = port
@@ -233,19 +261,22 @@ class Client:
     async def get(self, key, serializable=False):
         """Get the value of a key from etcd.
 
-        example usage:
+        :param key:
+            Key in etcd to get.
+
+        :param serializable:
+            Whether to allow serializable reads. This can result in stale reads.
+
+        :return:
+            A tuple of (bytes, :class:`~aetcd.client.KVMetadata`).
+
+        Example usage:
 
         .. code-block:: python
 
             import aetcd
-            etcd = aetcd.Client()
-            await etcd.get('/thing/key')
-
-        :param key: key in etcd to get
-        :param serializable: whether to allow serializable reads. This can
-            result in stale reads
-        :returns: value of key and metadata
-        :rtype: bytes, ``KVMetadata``
+            client = aetcd.Client()
+            await client.get('/thing/key')
         """
         range_request = self._build_get_range_request(
             key,
@@ -268,9 +299,11 @@ class Client:
                          keys_only=False):
         """Get a range of keys with a prefix.
 
-        :param key_prefix: first key in range
+        :param key_prefix:
+            First key in range.
 
-        :returns: sequence of (value, metadata) tuples
+        :returns:
+            A sequence of (bytes, :class:`~aetcd.client.KVMetadata`) tuples.
         """
         range_request = self._build_get_range_request(
             key=key_prefix,
@@ -298,9 +331,14 @@ class Client:
                         sort_target='key', **kwargs):
         """Get a range of keys.
 
-        :param range_start: first key in range
-        :param range_end: last key in range
-        :returns: sequence of (value, metadata) tuples
+        :param range_start:
+            First key in range.
+
+        :param range_end:
+            Last key in range.
+
+        :return:
+            A sequence of (bytes, :class:`~aetcd.client.KVMetadata`) tuples.
         """
         range_request = self._build_get_range_request(
             key=range_start,
@@ -328,7 +366,8 @@ class Client:
                       keys_only=False):
         """Get all keys currently stored in etcd.
 
-        :returns: sequence of (value, metadata) tuples
+        :return:
+            A sequence of (bytes, :class:`~aetcd.client.KVMetadata`) tuples.
         """
         range_request = self._build_get_range_request(
             key=b'\0',
@@ -355,23 +394,30 @@ class Client:
     async def put(self, key, value, lease=None, prev_kv=False):
         """Save a value to etcd.
 
+        :param key:
+            Key in etcd to set.
+
+        :param bytes value:
+            Value to set key to.
+
+        :param lease:
+            Lease to associate with this key.
+        :type lease:
+            either :class:`~aetcd.leases.Lease`, or int (ID of lease)
+
+        :param bool prev_kv:
+            Return the previous key-value pair.
+
+        :return:
+            A response containing a header and the prev_kv.
+
         Example usage:
 
         .. code-block:: python
 
             import aetcd
-            etcd = aetcd.Client()
-            await etcd.put('/thing/key', 'hello world')
-
-        :param key: key in etcd to set
-        :param value: value to set key to
-        :type value: bytes
-        :param lease: Lease to associate with this key.
-        :type lease: either :class:`.Lease`, or int (ID of lease)
-        :param prev_kv: return the previous key-value pair
-        :type prev_kv: bool
-        :returns: a response containing a header and the prev_kv
-        :rtype: :class:`.rpc_pb2.PutResponse`
+            client = aetcd.Client()
+            await client.put('/thing/key', 'hello world')
         """
         put_request = self._build_put_request(key, value, lease=lease,
                                               prev_kv=prev_kv)
@@ -390,14 +436,18 @@ class Client:
         value if it is equal to a specified value. This operation takes place
         in a transaction.
 
-        :param key: key in etcd to replace
-        :param initial_value: old value to replace
-        :type initial_value: bytes
-        :param new_value: new value of the key
-        :type new_value: bytes
-        :returns: status of transaction, ``True`` if the replace was
-                  successful, ``False`` otherwise
-        :rtype: bool
+        :param key:
+            Key in etcd to replace.
+
+        :param bytes initial_value:
+            Old value to replace.
+
+        :param bytes new_value:
+            New value of the key
+
+        :return:
+            A status of transaction, ``True`` if the replace was successful,
+            ``False`` otherwise.
         """
         status, _ = await self.transaction(
             compare=[
@@ -417,15 +467,19 @@ class Client:
     async def delete(self, key, prev_kv=False, return_response=False):
         """Delete a single key in etcd.
 
-        :param key: key in etcd to delete
-        :param prev_kv: return the deleted key-value pair
-        :type prev_kv: bool
-        :param return_response: return the full response
-        :type return_response: bool
-        :returns: True if the key has been deleted when
-                  ``return_response`` is False and a response containing
+        :param key:
+            Key in etcd to delete.
+
+        :param bool prev_kv:
+            Whether to return the deleted key-value pair.
+
+        :param bool return_response:
+            Return the full response
+
+        :return: ``True`` if the key has been deleted when
+                  ``return_response`` is ``False`` and a response containing
                   a header, the number of deleted keys and prev_kvs when
-                  ``return_response`` is True
+                  ``return_response`` is ``True``.
         """
         delete_request = self._build_delete_request(key, prev_kv=prev_kv)
         delete_response = await self.kvstub.DeleteRange(
@@ -485,10 +539,14 @@ class Client:
         the watch cannot be created during that time the method raises
         a ``WatchTimeoutError`` exception.
 
-        :param key: key to watch
-        :param callback: callback function
+        :param key:
+            Key to watch.
 
-        :returns: watch_id. Later it could be used for cancelling watch.
+        :param callable callback:
+            Callback function.
+
+        :return:
+            A watch_id, later it could be used for cancelling watch.
         """
         try:
             return await self.watcher.add_callback(*args, **kwargs)
@@ -500,19 +558,20 @@ class Client:
     async def watch(self, key, **kwargs):
         """Watch a key.
 
+        :param key:
+            Key to watch.
+
+        :return: tuple of ``events_iterator`` and ``cancel``.
+                 Use ``events_iterator`` to get the events of key changes
+                 and ``cancel`` to cancel the watch request.
+
         Example usage:
 
         .. code-block:: python
 
-            events_iterator, cancel = await etcd.watch('/doot/key')
-            async for event in events_iterator:
+            events, cancel = await client.watch('/doot/key')
+            async for event in events:
                 print(event)
-
-        :param key: key to watch
-
-        :returns: tuple of ``events_iterator`` and ``cancel``.
-                  Use ``events_iterator`` to get the events of key changes
-                  and ``cancel`` to cancel the watch request
         """
         event_queue = asyncio.Queue()
         watch_id = await self.add_watch_callback(
@@ -555,9 +614,14 @@ class Client:
         If the timeout was specified and event didn't arrived method
         will raise ``WatchTimeoutError`` exception.
 
-        :param key: key to watch
-        :param timeout: (optional) timeout in seconds.
-        :returns: :class:`aetcd.Event`
+        :param key:
+            Key to watch.
+
+        :param int timeout:
+            (optional) timeout in seconds.
+
+        :return:
+            An instance of :class:`~aetcd.events.Event`.
         """
         event_queue = asyncio.Queue()
 
@@ -587,7 +651,8 @@ class Client:
     async def cancel_watch(self, watch_id):
         """Stop watching a key or range of keys.
 
-        :param watch_id: watch_id returned by ``add_watch_callback`` method
+        :param watch_id:
+            watch_id returned by ``add_watch_callback`` method.
         """
         await self.watcher.cancel(watch_id)
 
@@ -596,29 +661,36 @@ class Client:
     async def transaction(self, compare, success=None, failure=None):
         """Perform a transaction.
 
+        :param compare:
+            A list of comparisons to make
+
+        :param success:
+            A list of operations to perform if all the comparisons
+            are true.
+
+        :param failure:
+            A list of operations to perform if any of the
+            comparisons are false.
+
+        :return:
+            A tuple of (operation status, responses).
+
         Example usage:
 
         .. code-block:: python
 
-            await etcd.transaction(
+            await client.transaction(
                 compare=[
-                    etcd.transactions.value('/doot/testing') == 'doot',
-                    etcd.transactions.version('/doot/testing') > 0,
+                    client.transactions.value('/doot/testing') == 'doot',
+                    client.transactions.version('/doot/testing') > 0,
                 ],
                 success=[
-                    etcd.transactions.put('/doot/testing', 'success'),
+                    client.transactions.put('/doot/testing', 'success'),
                 ],
                 failure=[
-                    etcd.transactions.put('/doot/testing', 'failure'),
+                    client.transactions.put('/doot/testing', 'failure'),
                 ]
             )
-
-        :param compare: A list of comparisons to make
-        :param success: A list of operations to perform if all the comparisons
-                        are true
-        :param failure: A list of operations to perform if any of the
-                        comparisons are false
-        :return: A tuple of (operation status, responses)
         """
         compare = [c.build_message() for c in compare]
 
@@ -662,11 +734,14 @@ class Client:
         lease expires. A lease can be sent keep alive messages to refresh the
         ttl.
 
-        :param ttl: Requested time to live
-        :param lease_id: Requested ID for the lease
+        :param int ttl:
+            Requested time to live.
 
-        :returns: new lease
-        :rtype: :class:`.Lease`
+        :param lease_id:
+            Requested ID for the lease.
+
+        :return:
+            A new lease, an instance of :class:`~aetcd.leases.Lease`.
         """
         lease_grant_request = rpc.LeaseGrantRequest(TTL=ttl, ID=lease_id)
         lease_grant_response = await self.leasestub.LeaseGrant(
@@ -683,7 +758,8 @@ class Client:
     async def revoke_lease(self, lease_id):
         """Revoke a lease.
 
-        :param lease_id: ID of the lease to revoke.
+        :param lease_id:
+            ID of the lease to revoke.
         """
         lease_revoke_request = rpc.LeaseRevokeRequest(ID=lease_id)
         await self.leasestub.LeaseRevoke(
@@ -717,14 +793,15 @@ class Client:
     def lock(self, name, ttl=60):
         """Create a new lock.
 
-        :param name: name of the lock
-        :type name: string or bytes
-        :param ttl: length of time for the lock to live for in seconds. The
-                    lock will be released after this time elapses, unless
-                    refreshed
-        :type ttl: int
-        :returns: new lock
-        :rtype: :class:`.Lock`
+        :param name:
+            Name of the lock.
+
+        :param int ttl:
+            Length of time for the lock to live for in seconds. The
+            lock will be released after this time elapses, unless refreshed.
+
+        :return:
+            A new lock, an instance of :class:`~aetcd.locks.Lock`.
         """
         return locks.Lock(name, ttl=ttl, etcd_client=self)
 
@@ -733,8 +810,8 @@ class Client:
     async def add_member(self, urls):
         """Add a member into the cluster.
 
-        :returns: new member
-        :rtype: :class:`members.Member`
+        :return:
+            A new member, an instance of :class:`~aetcd.members.Member`.
         """
         member_add_request = rpc.MemberAddRequest(peerURLs=urls)
 
@@ -758,7 +835,8 @@ class Client:
     async def remove_member(self, member_id):
         """Remove an existing member from the cluster.
 
-        :param member_id: ID of the member to remove
+        :param member_id:
+            ID of the member to remove.
         """
         member_rm_request = rpc.MemberRemoveRequest(ID=member_id)
         await self.clusterstub.MemberRemove(
@@ -772,9 +850,12 @@ class Client:
     async def update_member(self, member_id, peer_urls):
         """Update the configuration of an existing member in the cluster.
 
-        :param member_id: ID of the member to update
-        :param peer_urls: new list of peer urls the member will use to
-                          communicate with the cluster
+        :param member_id:
+            ID of the member to update.
+
+        :param peer_urls:
+            New list of peer URLs the member will use to
+            communicate with the cluster.
         """
         member_update_request = rpc.MemberUpdateRequest(
             ID=member_id,
@@ -790,7 +871,8 @@ class Client:
     async def members(self):
         """List of all members associated with the cluster.
 
-        :type: sequence of :class:`members.Member`
+        :return:
+            A sequence of :class:`~aetcd.members.Member`.
 
         """
         member_list_request = rpc.MemberListRequest()
@@ -817,11 +899,13 @@ class Client:
         All superseded keys with a revision less than the compaction revision
         will be removed.
 
-        :param revision: revision for the compaction operation
-        :param physical: if set to True, the request will wait until the
-                         compaction is physically applied to the local database
-                         such that compacted entries are totally removed from
-                         the backend database
+        :param revision:
+            Revision for the compaction operation.
+
+        :param physical:
+            If set to ``True``, the request will wait until the compaction is physically
+            applied to the local database such that compacted entries are totally removed from
+            the backend database.
         """
         compact_request = rpc.CompactionRequest(
             revision=revision,
@@ -849,8 +933,8 @@ class Client:
     async def hash(self):
         """Return the hash of the local KV state.
 
-        :returns: kv state hash
-        :rtype: int
+        :return:
+            KV state hash.
         """
         hash_request = rpc.HashRequest()
         return (await self.maintenancestub.Hash(hash_request)).hash
@@ -863,10 +947,12 @@ class Client:
         If no member id is given, the alarm is activated for all the
         members of the cluster. Only the `no space` alarm can be raised.
 
-        :param member_id: The cluster member id to create an alarm to.
-                          If 0, the alarm is created for all the members
-                          of the cluster.
-        :returns: list of :class:`.Alarm`
+        :param member_id:
+            The cluster member ID to create an alarm to.
+            If 0, the alarm is created for all the members of the cluster.
+
+        :return:
+            A sequence of :class:`~aetcd.client.Alarm`.
         """
         alarm_request = self._build_alarm_request('activate',
                                                   member_id,
@@ -886,10 +972,14 @@ class Client:
         """List the activated alarms.
 
         :param member_id:
-        :param alarm_type: The cluster member id to create an alarm to.
-                           If 0, the alarm is created for all the members
-                           of the cluster.
-        :returns: sequence of :class:`.Alarm`
+            The cluster member ID.
+
+        :param alarm_type:
+            The cluster member ID to create an alarm to.
+            If 0, the alarm is created for all the members of the cluster.
+
+        :return:
+            A sequence of :class:`~aetcd.client.Alarm`.
         """
         alarm_request = self._build_alarm_request('get',
                                                   member_id,
@@ -908,10 +998,11 @@ class Client:
     async def disarm_alarm(self, member_id=0):
         """Cancel an alarm.
 
-        :param member_id: The cluster member id to cancel an alarm.
-                          If 0, the alarm is canceled for all the members
-                          of the cluster.
-        :returns: List of :class:`.Alarm`
+        :param member_id:
+            The cluster member id to cancel an alarm.
+            If 0, the alarm is canceled for all the members of the cluster.
+
+        :return: A sequence of :class:`~aetcd.client.Alarm`.
         """
         alarm_request = self._build_alarm_request('deactivate',
                                                   member_id,
@@ -930,7 +1021,8 @@ class Client:
     async def snapshot(self, file_obj):
         """Take a snapshot of the database.
 
-        :param file_obj: A file-like object to write the database contents in.
+        :param file_obj:
+            A file-like object to write the database contents in.
         """
         snapshot_request = rpc.SnapshotRequest()
         snapshot_responses = await self.maintenancestub.Snapshot(
