@@ -108,8 +108,7 @@ class TestEtcd3:
     async def test_put_key(self, etcd, string='xxx'):
         await etcd.put('/doot/put_1', string)
         out = etcdctl('get', '/doot/put_1')
-        assert base64.b64decode(out['kvs'][0]['value']) == \
-               string.encode('utf-8')
+        assert base64.b64decode(out['kvs'][0]['value']) == string.encode('utf-8')
 
     # @given(
     #     characters(blacklist_categories=['Cs', 'Cc']),
@@ -192,8 +191,7 @@ class TestEtcd3:
         def update_etcd(v):
             etcdctl('put', '/doot/watch', v)
             out = etcdctl('get', '/doot/watch')
-            assert base64.b64decode(out['kvs'][0]['value']) == \
-                   utils.to_bytes(v)
+            assert base64.b64decode(out['kvs'][0]['value']) == utils.to_bytes(v)
 
         def update_key():
             # sleep to make watch can get the event
@@ -238,8 +236,7 @@ class TestEtcd3:
         def update_etcd(v):
             etcdctl('put', '/watchcompation', v)
             out = etcdctl('get', '/watchcompation')
-            assert base64.b64decode(out['kvs'][0]['value']) == \
-                   utils.to_bytes(v)
+            assert base64.b64decode(out['kvs'][0]['value']) == utils.to_bytes(v)
 
         def update_key():
             update_etcd('1')
@@ -271,8 +268,7 @@ class TestEtcd3:
                 b'/watchcompation', start_revision=compacted_revision)
             async for event in events_iterator:
                 assert event.key == b'/watchcompation'
-                assert event.value == \
-                       utils.to_bytes(str(change_count))
+                assert event.value == utils.to_bytes(str(change_count))
 
                 # if cancel worked, we should not receive event 3
                 assert event.value != utils.to_bytes('3')
@@ -335,8 +331,7 @@ class TestEtcd3:
         def update_etcd(v):
             etcdctl('put', '/doot/watch/prefix/' + v, v)
             out = etcdctl('get', '/doot/watch/prefix/' + v)
-            assert base64.b64decode(out['kvs'][0]['value']) == \
-                   utils.to_bytes(v)
+            assert base64.b64decode(out['kvs'][0]['value']) == utils.to_bytes(v)
 
         def update_key():
             # sleep to make watch can get the event
@@ -357,10 +352,8 @@ class TestEtcd3:
         events_iterator, cancel = await etcd.watch_prefix(
             '/doot/watch/prefix/')
         async for event in events_iterator:
-            assert event.key == \
-                   utils.to_bytes('/doot/watch/prefix/{}'.format(change_count))
-            assert event.value == \
-                   utils.to_bytes(str(change_count))
+            assert event.key == utils.to_bytes(f'/doot/watch/prefix/{change_count}')
+            assert event.value == utils.to_bytes(str(change_count))
 
             # if cancel worked, we should not receive event 3
             assert event.value != utils.to_bytes('3')
@@ -455,10 +448,10 @@ class TestEtcd3:
     @pytest.mark.asyncio
     async def test_get_prefix(self, etcd):
         for i in range(20):
-            etcdctl('put', '/doot/range{}'.format(i), 'i am a range')
+            etcdctl('put', f'/doot/range{i}', 'i am a range')
 
         for i in range(5):
-            etcdctl('put', '/doot/notrange{}'.format(i), 'i am a not range')
+            etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
         values = [p async for p in etcd.get_prefix('/doot/range')]
         assert len(values) == 20
@@ -468,10 +461,10 @@ class TestEtcd3:
     @pytest.mark.asyncio
     async def test_get_prefix_keys_only(self, etcd):
         for i in range(20):
-            etcdctl('put', '/doot/range{}'.format(i), 'i am a range')
+            etcdctl('put', f'/doot/range{i}', 'i am a range')
 
         for i in range(5):
-            etcdctl('put', '/doot/notrange{}'.format(i), 'i am a not range')
+            etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
         values = [p async for p in etcd.get_prefix('/doot/range',
                                                    keys_only=True)]
@@ -501,7 +494,7 @@ class TestEtcd3:
     @pytest.mark.asyncio
     async def test_range_not_found_error(self, etcd):
         for i in range(5):
-            etcdctl('put', '/doot/notrange{}'.format(i), 'i am a not range')
+            etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
         result = [p async for p in etcd.get_prefix('/doot/range')]
         assert not result
@@ -509,10 +502,10 @@ class TestEtcd3:
     @pytest.mark.asyncio
     async def test_get_all(self, etcd):
         for i in range(20):
-            etcdctl('put', '/doot/range{}'.format(i), 'i am in all')
+            etcdctl('put', f'/doot/range{i}', 'i am in all')
 
         for i in range(5):
-            etcdctl('put', '/doot/notrange{}'.format(i), 'i am in all')
+            etcdctl('put', f'/doot/notrange{i}', 'i am in all')
         values = [x async for x in etcd.get_all()]
         assert len(values) == 25
         for value, _ in values:
@@ -527,7 +520,7 @@ class TestEtcd3:
         initial_values = 'qwert'
 
         for k, v in zip(initial_keys, initial_values):
-            etcdctl('put', '/doot/{}'.format(k), v)
+            etcdctl('put', f'/doot/{k}', v)
 
         keys = ''
         async for value, meta in etcd.get_prefix('/doot', sort_order='ascend'):
@@ -969,8 +962,7 @@ class TestCompares(object):
 
         version_compare = tx.version(key) > 92
         assert version_compare.op == rpc.Compare.GREATER
-        assert version_compare.build_message().target == \
-               rpc.Compare.VERSION
+        assert version_compare.build_message().target == rpc.Compare.VERSION
 
     def test_compare_value(self):
         key = 'key'

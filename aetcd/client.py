@@ -50,7 +50,7 @@ def _handle_errors(f):
                 _translate_exception(exc)
     else:
         raise RuntimeError(
-            f'Provided function {f.__name__!r} is neither a coroutine nor an async generator')
+            f'provided function {f.__name__!r} is neither a coroutine nor an async generator')
 
     return functools.wraps(f)(handler)
 
@@ -67,7 +67,7 @@ def _ensure_connected(f):
                 yield data
     else:
         raise RuntimeError(
-            f'Provided function {f.__name__!r} is neither a coroutine nor an async generator')
+            f'provided function {f.__name__!r} is neither a coroutine nor an async generator')
 
     return functools.wraps(f)(handler)
 
@@ -143,13 +143,13 @@ class Client:
         cert_params = (cert_cert, cert_key)
         if any(cert_params) and None in cert_params:
             raise ValueError(
-                'To use a secure channel ca_cert is required by itself, '
+                'to use a secure channel ca_cert is required by itself, '
                 'or cert_cert and cert_key must both be specified')
 
         cred_params = (self._username, self._password)
         if any(cred_params) and None in cred_params:
             raise Exception(
-                'If using authentication credentials both username and password '
+                'if using authentication credentials both username and password '
                 'must be provided')
 
         self._ca_cert = ca_cert
@@ -544,8 +544,7 @@ class Client:
     @_ensure_connected
     async def watch_prefix(self, key_prefix, **kwargs):
         """Watches a range of keys with a prefix."""
-        kwargs['range_end'] = \
-            utils.prefix_range_end(utils.to_bytes(key_prefix))
+        kwargs['range_end'] = utils.prefix_range_end(utils.to_bytes(key_prefix))
         return await self.watch(key_prefix, **kwargs)
 
     @_handle_errors
@@ -970,7 +969,7 @@ class Client:
         elif sort_order == 'descend':
             range_request.sort_order = rpc.RangeRequest.DESCEND
         else:
-            raise ValueError('unknown sort order: "{}"'.format(sort_order))
+            raise ValueError(f'unknown sort order: {sort_order!r}')
 
         if sort_target is None or sort_target == 'key':
             range_request.sort_target = rpc.RangeRequest.KEY
@@ -1014,8 +1013,7 @@ class Client:
         return delete_request
 
     def _ops_to_requests(self, ops):
-        """
-        Return a list of grpc requests.
+        """Return a list of gRPC requests.
 
         Returns list from an input list of etcd3.transactions.{Put, Get,
         Delete, Txn} objects.
@@ -1052,8 +1050,8 @@ class Client:
                 request_ops.append(request_op)
 
             else:
-                raise Exception(
-                    'Unknown request class {}'.format(op.__class__))
+                raise Exception(f'unknown request class {op.__class__!r}')
+
         return request_ops
 
     @staticmethod
@@ -1067,7 +1065,7 @@ class Client:
         elif alarm_action == 'deactivate':
             alarm_request.action = rpc.AlarmRequest.DEACTIVATE
         else:
-            raise ValueError('Unknown alarm action: {}'.format(alarm_action))
+            raise ValueError(f'unknown alarm action: {alarm_action!r}')
 
         alarm_request.memberID = member_id
 
@@ -1076,6 +1074,6 @@ class Client:
         elif alarm_type == 'no space':
             alarm_request.alarm = rpc.NOSPACE
         else:
-            raise ValueError('Unknown alarm type: {}'.format(alarm_type))
+            raise ValueError(f'unknown alarm type: {alarm_type!r}')
 
         return alarm_request
