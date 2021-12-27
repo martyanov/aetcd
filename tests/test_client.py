@@ -231,7 +231,6 @@ class TestEtcd3:
 
         t.join()
 
-    @pytest.mark.skip('broken implementation')
     @pytest.mark.asyncio
     async def test_watch_key_with_revision_compacted(self, etcd):
         etcdctl('put', '/watchcompation', '0')  # Some data to compact
@@ -289,7 +288,6 @@ class TestEtcd3:
 
         t.join()
 
-    @pytest.mark.skip('broken implementation')
     @pytest.mark.asyncio
     async def test_watch_exception_during_watch(self, etcd, rpc_error):
         await etcd.connect()
@@ -316,7 +314,7 @@ class TestEtcd3:
 
         with pytest.raises(aetcd.exceptions.ConnectionFailedError):
             async for _ in events_iterator:
-                _
+                pass
 
         await task
 

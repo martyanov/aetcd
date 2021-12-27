@@ -22,7 +22,7 @@ _EXCEPTIONS_BY_CODE = {
 
 
 def _translate_exception(error: rpc.AioRpcError):
-    exc = _EXCEPTIONS_BY_CODE.get(error.code)
+    exc = _EXCEPTIONS_BY_CODE.get(error.code())
     if exc is not None:
         raise exc
     raise
@@ -153,6 +153,12 @@ class Client:
         self._password = password
         self._timeout = timeout
         self._options = options or {}
+
+        cred_params = (self._username, self._password)
+        if any(cred_params) and None in cred_params:
+            raise Exception(
+                'if using authentication credentials both username and password '
+                'must be provided')
 
         self._init_channel_attrs()
 
@@ -723,10 +729,12 @@ class Client:
     @_handle_errors
     @_ensure_connected
     async def refresh_lease(self, lease_id):
-        return await self.leasestub.LeaseKeepAlive(
+        async for reply in self.leasestub.LeaseKeepAlive(
             [rpc.LeaseKeepAliveRequest(ID=lease_id)],
             timeout=self._timeout,
-            metadata=self.metadata)
+                metadata=self.metadata,
+        ):
+            return reply
 
     @_handle_errors
     @_ensure_connected
@@ -977,13 +985,13 @@ class Client:
             A file-like object to write the database contents in.
         """
         snapshot_request = rpc.SnapshotRequest()
-        snapshot_responses = await self.maintenancestub.Snapshot(
+        snapshot_responses = self.maintenancestub.Snapshot(
             snapshot_request,
             timeout=self._timeout,
             metadata=self.metadata,
         )
 
-        for response in snapshot_responses:
+        async for response in snapshot_responses:
             file_obj.write(response.blob)
 
     @staticmethod
