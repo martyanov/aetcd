@@ -1,3 +1,14 @@
+from grpc import RpcError  # noqa: F401
+from grpc import Status  # noqa: F401
+from grpc import StatusCode  # noqa: F401
+from grpc.aio import AbortError  # noqa: F401
+from grpc.aio import AioRpcError  # noqa: F401
+from grpc.aio import BaseError  # noqa: F401
+from grpc.aio import Channel  # noqa: F401
+from grpc.aio import InternalError  # noqa: F401
+from grpc.aio import insecure_channel  # noqa: F401
+from grpc.aio import secure_channel  # noqa: F401
+
 from .auth_pb2 import Permission  # noqa: F401
 from .auth_pb2 import Role  # noqa: F401
 from .auth_pb2 import User  # noqa: F401
@@ -42,6 +53,7 @@ from .rpc_pb2 import AuthUserRevokeRoleRequest  # noqa: F401
 from .rpc_pb2 import AuthUserRevokeRoleResponse  # noqa: F401
 from .rpc_pb2 import AuthenticateRequest  # noqa: F401
 from .rpc_pb2 import AuthenticateResponse  # noqa: F401
+from .rpc_pb2 import CORRUPT  # noqa: F401
 from .rpc_pb2 import CompactionRequest  # noqa: F401
 from .rpc_pb2 import CompactionResponse  # noqa: F401
 from .rpc_pb2 import Compare  # noqa: F401
@@ -82,6 +94,8 @@ from .rpc_pb2 import MemberUpdateRequest  # noqa: F401
 from .rpc_pb2 import MemberUpdateResponse  # noqa: F401
 from .rpc_pb2 import MoveLeaderRequest  # noqa: F401
 from .rpc_pb2 import MoveLeaderResponse  # noqa: F401
+from .rpc_pb2 import NONE  # noqa: F401
+from .rpc_pb2 import NOSPACE  # noqa: F401
 from .rpc_pb2 import PutRequest  # noqa: F401
 from .rpc_pb2 import PutResponse  # noqa: F401
 from .rpc_pb2 import RangeRequest  # noqa: F401

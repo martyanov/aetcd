@@ -2,10 +2,6 @@ import asyncio
 import functools
 import inspect
 import typing
-import warnings
-
-import grpclib
-import grpclib.client
 
 from . import exceptions
 from . import leases
@@ -18,15 +14,15 @@ from . import watch
 
 
 _EXCEPTIONS_BY_CODE = {
-    grpclib.Status.INTERNAL: exceptions.InternalServerError,
-    grpclib.Status.UNAVAILABLE: exceptions.ConnectionFailedError,
-    grpclib.Status.DEADLINE_EXCEEDED: exceptions.ConnectionTimeoutError,
-    grpclib.Status.FAILED_PRECONDITION: exceptions.PreconditionFailedError,
+    rpc.StatusCode.DEADLINE_EXCEEDED: exceptions.ConnectionTimeoutError,
+    rpc.StatusCode.FAILED_PRECONDITION: exceptions.PreconditionFailedError,
+    rpc.StatusCode.INTERNAL: exceptions.InternalServerError,
+    rpc.StatusCode.UNAVAILABLE: exceptions.ConnectionFailedError,
 }
 
 
-def _translate_exception(error: grpclib.GRPCError):
-    exc = _EXCEPTIONS_BY_CODE.get(error.status)
+def _translate_exception(error: rpc.AioRpcError):
+    exc = _EXCEPTIONS_BY_CODE.get(error.code)
     if exc is not None:
         raise exc
     raise
@@ -37,15 +33,15 @@ def _handle_errors(f):
         async def handler(*args, **kwargs):
             try:
                 return await f(*args, **kwargs)
-            except grpclib.GRPCError as exc:
-                _translate_exception(exc)
+            except rpc.AioRpcError as e:
+                _translate_exception(e)
     elif inspect.isasyncgenfunction(f):
         async def handler(*args, **kwargs):
             try:
                 async for data in f(*args, **kwargs):
                     yield data
-            except grpclib.GRPCError as exc:
-                _translate_exception(exc)
+            except rpc.AioRpcError as e:
+                _translate_exception(e)
     else:
         raise RuntimeError(
             f'provided function {f.__name__!r} is neither a coroutine nor an async generator')
@@ -132,8 +128,11 @@ class Client:
     :param str password:
         Password to be used for authentication.
 
-    :param dict grpc_options:
-        (UNIMPLEMENTED) Options provided to underlying gRPC channel.
+    :param int timeout:
+        Connection timeout in secods.
+
+    :param dict options:
+        Options provided to the underlying gRPC channel.
 
     :return:
         A :class:`~aetcd.client.Client` instance.
@@ -146,16 +145,14 @@ class Client:
         username: typing.Optional[str] = None,
         password: typing.Optional[str] = None,
         timeout: typing.Optional[int] = None,
-        grpc_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        options: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ):
         self._host = host
         self._port = port
         self._username = username
         self._password = password
         self._timeout = timeout
-
-        if grpc_options is not None:
-            warnings.warn('gRPC options are not supported for now')
+        self._options = options or {}
 
         self._init_channel_attrs()
 
@@ -177,7 +174,8 @@ class Client:
         if self.channel:
             return
 
-        self.channel = grpclib.client.Channel(host=self._host, port=self._port)
+        target = f'{self._host}:{self._port}'
+        self.channel = rpc.insecure_channel(target, options=self._options.items())
 
         cred_params = [c is not None for c in (self._username, self._password)]
         if all(cred_params):
@@ -200,7 +198,7 @@ class Client:
         """Close all connections and free allocated resources."""
         if self.channel:
             self.watcher.close()
-            self.channel.close()
+            await self.channel.close()
             self._init_channel_attrs()
 
     async def __aenter__(self):
