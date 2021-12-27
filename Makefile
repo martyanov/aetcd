@@ -30,16 +30,12 @@ build: bootstrap
 
 genproto: bootstrap
 	$(PYTHON) -m grpc_tools.protoc -Iproto \
-		--plugin=protoc-gen-python_grpc=$(VENV)/bin/protoc-gen-python_grpc \
-		--plugin=protoc-gen-grpclib_python=$(VENV)/bin/protoc-gen-grpclib_python \
 		--python_out=aetcd/rpc/ \
-		--python_grpc_out=aetcd/rpc/ \
+		--grpc_python_out=aetcd/rpc/ \
 		proto/rpc.proto proto/auth.proto proto/kv.proto
 	sed -i -e 's/import auth_pb2/from . import auth_pb2/g' aetcd/rpc/rpc_pb2.py
 	sed -i -e 's/import kv_pb2/from . import kv_pb2/g' aetcd/rpc/rpc_pb2.py
-	sed -i -e 's/import kv_pb2/from . import kv_pb2/g' aetcd/rpc/rpc_grpc.py
-	sed -i -e 's/import auth_pb2/from . import auth_pb2/g' aetcd/rpc/rpc_grpc.py
-	sed -i -e 's/import rpc_pb2/from . import rpc_pb2/g' aetcd/rpc/rpc_grpc.py
+	sed -i -e 's/import rpc_pb2/from . import rpc_pb2/g' aetcd/rpc/rpc_pb2_grpc.py
 
 lint: bootstrap
 	$(PYTHON) -m flake8 aetcd tests

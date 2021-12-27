@@ -46,6 +46,7 @@ setuptools.setup(
     ],
     install_requires=[
         'aiofiles>=0.5,<0.9',
+        'grpcio>1,<2',
         'grpclib>=0.4.1,<0.5',
         'protobuf>=3,<4',
         'tenacity>=6,<9',
