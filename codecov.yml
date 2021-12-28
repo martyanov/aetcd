@@ -1,4 +1,5 @@
 comment: no
 coverage:
-    patch: no
-    changes: no
+  project: no
+  patch: no
+  changes: no
