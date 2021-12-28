@@ -41,13 +41,13 @@ Values can be stored with the ``put`` method:
 
 .. code-block:: python
 
-    await client.put('foo', 'bar')
+    await client.put(b'foo', b'bar')
 
 You can check this has been stored correctly:
 
 .. code-block:: python
 
-    await client.get('foo')
+    await client.get(b'foo')
 
 Or by testing with ``etcdctl``:
 
@@ -61,7 +61,7 @@ You can delete previously set value:
 
 .. code-block:: python
 
-    await client.delete('foo')
+    await client.delete(b'foo')
 
 Locks
 =====
@@ -70,7 +70,7 @@ You can use locks API directly:
 
 .. code-block:: python
 
-    lock = client.lock('foo')
+    lock = client.lock(b'foo')
 
     await lock.acquire()
     # Do something
@@ -81,7 +81,7 @@ Or as a context manager:
 
 .. code-block:: python
 
-    async with client.lock('foo') as lock:
+    async with client.lock(b'foo') as lock:
         # Do something
 
 Transactions
@@ -91,14 +91,14 @@ Transactions
 
     await client.transaction(
         compare=[
-            client.transactions.value('foo') == 'bar',
-            client.transactions.version('foo') > 0,
+            client.transactions.value(b'foo') == b'bar',
+            client.transactions.version(b'foo') > 0,
         ],
         success=[
-            client.transactions.put('foo', 'success'),
+            client.transactions.put(b'foo', b'success'),
         ],
         failure=[
-            client.transactions.put('foo', 'failure'),
+            client.transactions.put(b'foo', b'failure'),
         ],
     )
 
@@ -110,7 +110,7 @@ Watch for key:
 .. code-block:: python
 
     watch_count = 0
-    events, cancel = await client.watch('foo')
+    events, cancel = await client.watch(b'foo')
 
     async for event in events:
         print(event)
@@ -123,7 +123,7 @@ Watch for key prefix:
 .. code-block:: python
 
     watch_count = 0
-    events, cancel = await client.watch_prefix('foo')
+    events, cancel = await client.watch_prefix(b'foo')
 
     async for event in events:
         print(event)
@@ -138,7 +138,7 @@ Receive watch events via a callback function:
     def watch_callback(event):
         print(event)
 
-    watch_id = await client.add_watch_callback('foo', watch_callback)
+    watch_id = await client.add_watch_callback(b'foo', watch_callback)
 
 Cancel watch:
 

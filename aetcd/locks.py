@@ -3,10 +3,10 @@ import uuid
 import tenacity
 
 
-# from etcd3 import exceptions
+# from . import exceptions
 
 
-lock_prefix = '/locks/'
+lock_prefix = b'/locks/'
 
 
 class Lock(object):
@@ -21,7 +21,7 @@ class Lock(object):
         etcd = etcd3.client()
 
         # create a lock that expires after 20 seconds
-        with etcd.lock('toot', ttl=20) as lock:
+        with etcd.lock(b'key', ttl=20) as lock:
             # do something that requires the lock
             print(lock.is_acquired())
 
@@ -130,12 +130,12 @@ class Lock(object):
 
     async def is_acquired(self):
         """Check if this lock is currently acquired."""
-        uuid, _ = await self.etcd_client.get(self.key)
+        result = await self.etcd_client.get(self.key)
 
-        if uuid is None:
+        if result is None:
             return False
 
-        return uuid == self.uuid
+        return result.value == self.uuid
 
     async def __aenter__(self):
         await self.acquire()

@@ -88,110 +88,101 @@ class TestEtcd3:
 
     @pytest.mark.asyncio
     async def test_get_unknown_key(self, etcd):
-        value, meta = await etcd.get('probably-invalid-key')
-        assert value is None
-        assert meta is None
+        result = await etcd.get(b'probably-invalid-key')
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_get_key(self, etcd, string='xxx'):
         etcdctl('put', '/doot/a_key', string)
-        returned, _ = await etcd.get('/doot/a_key')
-        assert returned == string.encode('utf-8')
+        result = await etcd.get(b'/doot/a_key')
+        assert result.value == string.encode('utf-8')
 
     @pytest.mark.asyncio
     async def test_get_random_key(self, etcd, string='xxxx'):
         etcdctl('put', '/doot/' + string, 'dootdoot')
-        returned, _ = await etcd.get('/doot/' + string)
-        assert returned == b'dootdoot'
+        result = await etcd.get(b'/doot/' + string.encode('utf-8'))
+        assert result.value == b'dootdoot'
 
     @pytest.mark.asyncio
     async def test_get_have_cluster_revision(self, etcd, string='xxx'):
         etcdctl('put', '/doot/' + string, 'dootdoot')
-        _, md = await etcd.get('/doot/' + string)
-        assert md.response_header.revision > 0
+        result = await etcd.get(b'/doot/' + string.encode('utf-8'))
+        assert result.header.revision > 0
 
-    # @given(characters(blacklist_categories=['Cs', 'Cc']))
     @pytest.mark.asyncio
     async def test_put_key(self, etcd, string='xxx'):
-        await etcd.put('/doot/put_1', string)
+        await etcd.put(b'/doot/put_1', string.encode('utf-8'))
         out = etcdctl('get', '/doot/put_1')
         assert base64.b64decode(out['kvs'][0]['value']) == string.encode('utf-8')
 
-    # @given(
-    #     characters(blacklist_categories=['Cs', 'Cc']),
-    #     characters(blacklist_categories=['Cs', 'Cc']),
-    # )
     @pytest.mark.asyncio
     async def test_get_key_serializable(self, etcd, key='foo', string='xxx'):
         etcdctl('put', '/doot/' + key, string)
         with _out_quorum():
-            returned, _ = await etcd.get('/doot/' + key, serializable=True)
-        assert returned == string.encode('utf-8')
+            result = await etcd.get(b'/doot/' + key.encode('utf-8'), serializable=True)
+        assert result.value == string.encode('utf-8')
 
-    # @given(characters(blacklist_categories=['Cs', 'Cc']))
     @pytest.mark.asyncio
-    async def test_put_has_cluster_revision(self, etcd, string='xxx'):
-        response = await etcd.put('/doot/put_1', string)
+    async def test_put_has_cluster_revision(self, etcd):
+        response = await etcd.put(b'/doot/put_1', b'xxx')
         assert response.header.revision > 0
 
-    # @given(characters(blacklist_categories=['Cs', 'Cc']))
     @pytest.mark.asyncio
-    async def test_put_has_prev_kv(self, etcd, string='xxxx'):
+    async def test_put_has_prev_kv(self, etcd):
         etcdctl('put', '/doot/put_1', 'old_value')
-        response = await etcd.put('/doot/put_1', string, prev_kv=True)
+        response = await etcd.put(b'/doot/put_1', b'xxxx', prev_kv=True)
         assert response.prev_kv.value == b'old_value'
 
     @pytest.mark.asyncio
     async def test_delete_key(self, etcd):
         etcdctl('put', '/doot/delete_this', 'delete pls')
 
-        v, _ = await etcd.get('/doot/delete_this')
-        assert v == b'delete pls'
+        result = await etcd.get(b'/doot/delete_this')
+        assert result.value == b'delete pls'
 
-        deleted = await etcd.delete('/doot/delete_this')
-        assert deleted is True
+        result = await etcd.delete(b'/doot/delete_this')
+        assert result
 
-        deleted = await etcd.delete('/doot/delete_this')
-        assert deleted is False
+        result = await etcd.delete(b'/doot/delete_this')
+        assert not result
 
-        deleted = await etcd.delete('/doot/not_here_dude')
-        assert deleted is False
-
-        v, _ = await etcd.get('/doot/delete_this')
-        assert v is None
+        result = await etcd.delete(b'/doot/not_here_dude')
+        assert not result
 
     @pytest.mark.asyncio
     async def test_delete_has_cluster_revision(self, etcd):
-        response = await etcd.delete('/doot/delete_this', return_response=True)
-        assert response.header.revision > 0
+        result = await etcd.delete(b'/doot/delete_this')
+        assert result.header.revision > 0
 
     @pytest.mark.asyncio
     async def test_delete_has_prev_kv(self, etcd):
         etcdctl('put', '/doot/delete_this', 'old_value')
-        response = await etcd.delete('/doot/delete_this',
-                                     prev_kv=True,
-                                     return_response=True)
-        assert response.prev_kvs[0].value == b'old_value'
+        result = await etcd.delete(
+            b'/doot/delete_this',
+            prev_kv=True,
+        )
+        assert result.prev_kv.value == b'old_value'
+        assert result.deleted == 1
 
     @pytest.mark.asyncio
     async def test_delete_keys_with_prefix(self, etcd):
         etcdctl('put', '/foo/1', 'bar')
         etcdctl('put', '/foo/2', 'baz')
 
-        v, _ = await etcd.get('/foo/1')
-        assert v == b'bar'
+        result = await etcd.get(b'/foo/1')
+        assert result.value == b'bar'
 
-        v, _ = await etcd.get('/foo/2')
-        assert v == b'baz'
+        result = await etcd.get(b'/foo/2')
+        assert result.value == b'baz'
 
-        response = await etcd.delete_prefix('/foo')
+        response = await etcd.delete_prefix(b'/foo')
         assert response.deleted == 2
 
-        v, _ = await etcd.get('/foo/1')
-        assert v is None
+        result = await etcd.get(b'/foo/1')
+        assert result is None
 
-        v, _ = await etcd.get('/foo/2')
-        assert v is None
+        result = await etcd.get(b'/foo/2')
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_watch_key(self, etcd):
@@ -234,8 +225,8 @@ class TestEtcd3:
     @pytest.mark.asyncio
     async def test_watch_key_with_revision_compacted(self, etcd):
         etcdctl('put', '/watchcompation', '0')  # Some data to compact
-        value, meta = await etcd.get('/watchcompation')
-        revision = meta.mod_revision
+        result = await etcd.get(b'/watchcompation')
+        revision = result.mod_revision
 
         # Compact etcd and test watcher
         await etcd.compact(revision)
@@ -395,9 +386,9 @@ class TestEtcd3:
     async def test_transaction_success(self, etcd):
         etcdctl('put', '/doot/txn', 'dootdoot')
         await etcd.transaction(
-            compare=[etcd.transactions.value('/doot/txn') == 'dootdoot'],
-            success=[etcd.transactions.put('/doot/txn', 'success')],
-            failure=[etcd.transactions.put('/doot/txn', 'failure')],
+            compare=[etcd.transactions.value(b'/doot/txn') == b'dootdoot'],
+            success=[etcd.transactions.put(b'/doot/txn', b'success')],
+            failure=[etcd.transactions.put(b'/doot/txn', b'failure')],
         )
         out = etcdctl('get', '/doot/txn')
         assert base64.b64decode(out['kvs'][0]['value']) == b'success'
@@ -406,9 +397,9 @@ class TestEtcd3:
     async def test_transaction_failure(self, etcd):
         etcdctl('put', '/doot/txn', 'notdootdoot')
         await etcd.transaction(
-            compare=[etcd.transactions.value('/doot/txn') == 'dootdoot'],
-            success=[etcd.transactions.put('/doot/txn', 'success')],
-            failure=[etcd.transactions.put('/doot/txn', 'failure')],
+            compare=[etcd.transactions.value(b'/doot/txn') == b'dootdoot'],
+            success=[etcd.transactions.put(b'/doot/txn', b'success')],
+            failure=[etcd.transactions.put(b'/doot/txn', b'failure')],
         )
         out = etcdctl('get', '/doot/txn')
         assert base64.b64decode(out['kvs'][0]['value']) == b'failure'
@@ -423,32 +414,32 @@ class TestEtcd3:
     async def test_nested_transactions(self, etcd):
         await etcd.transaction(
             compare=[],
-            success=[etcd.transactions.put('/doot/txn1', '1'),
+            success=[etcd.transactions.put(b'/doot/txn1', b'1'),
                      etcd.transactions.txn(
                          compare=[],
-                         success=[etcd.transactions.put('/doot/txn2', '2')],
+                         success=[etcd.transactions.put(b'/doot/txn2', b'2')],
                          failure=[])],
             failure=[],
         )
-        value, _ = await etcd.get('/doot/txn1')
-        assert value == b'1'
-        value, _ = await etcd.get('/doot/txn2')
-        assert value == b'2'
+        result = await etcd.get(b'/doot/txn1')
+        assert result.value == b'1'
+        result = await etcd.get(b'/doot/txn2')
+        assert result.value == b'2'
 
     @pytest.mark.asyncio
     async def test_replace_success(self, etcd):
-        await etcd.put('/doot/thing', 'toot')
-        status = await etcd.replace('/doot/thing', 'toot', 'doot')
-        v, _ = await etcd.get('/doot/thing')
-        assert v == b'doot'
+        await etcd.put(b'/doot/thing', b'toot')
+        status = await etcd.replace(b'/doot/thing', b'toot', b'doot')
+        result = await etcd.get(b'/doot/thing')
+        assert result.value == b'doot'
         assert status is True
 
     @pytest.mark.asyncio
     async def test_replace_fail(self, etcd):
-        await etcd.put('/doot/thing', 'boot')
-        status = await etcd.replace('/doot/thing', 'toot', 'doot')
-        v, _ = await etcd.get('/doot/thing')
-        assert v == b'boot'
+        await etcd.put(b'/doot/thing', b'boot')
+        status = await etcd.replace(b'/doot/thing', b'toot', b'doot')
+        result = await etcd.get(b'/doot/thing')
+        assert result.value == b'boot'
         assert status is False
 
     @pytest.mark.asyncio
@@ -459,10 +450,10 @@ class TestEtcd3:
         for i in range(5):
             etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
-        values = [p async for p in etcd.get_prefix('/doot/range')]
-        assert len(values) == 20
-        for value, _ in values:
-            assert value == b'i am a range'
+        results = [r async for r in etcd.get_prefix(b'/doot/range')]
+        assert len(results) == 20
+        for result in results:
+            assert result.value == b'i am a range'
 
     @pytest.mark.asyncio
     async def test_get_prefix_keys_only(self, etcd):
@@ -472,12 +463,12 @@ class TestEtcd3:
         for i in range(5):
             etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
-        values = [p async for p in etcd.get_prefix('/doot/range',
-                                                   keys_only=True)]
-        assert len(values) == 20
-        for value, meta in values:
-            assert meta.key.startswith(b'/doot/range')
-            assert not value
+        results = [r async for r in etcd.get_prefix(b'/doot/range',
+                                                    keys_only=True)]
+        assert len(results) == 20
+        for result in results:
+            assert result.key.startswith(b'/doot/range')
+            assert not result.value
 
     @pytest.mark.asyncio
     async def test_get_range(self, etcd):
@@ -487,10 +478,10 @@ class TestEtcd3:
             else:
                 etcdctl('put', '/doot/' + char, 'i am not in range')
 
-        values = [v async for v in etcd.get_range('/doot/a', '/doot/p')]
-        assert len(values) == 15
-        for value, _ in values:
-            assert value == b'i am in range'
+        results = [r async for r in etcd.get_range(b'/doot/a', b'/doot/p')]
+        assert len(results) == 15
+        for result in results:
+            assert result.value == b'i am in range'
 
     @pytest.mark.asyncio
     async def test_all_not_found_error(self, etcd):
@@ -502,8 +493,8 @@ class TestEtcd3:
         for i in range(5):
             etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
-        result = [p async for p in etcd.get_prefix('/doot/range')]
-        assert not result
+        results = [r async for r in etcd.get_prefix(b'/doot/range')]
+        assert not results
 
     @pytest.mark.asyncio
     async def test_get_all(self, etcd):
@@ -512,10 +503,10 @@ class TestEtcd3:
 
         for i in range(5):
             etcdctl('put', f'/doot/notrange{i}', 'i am in all')
-        values = [x async for x in etcd.get_all()]
-        assert len(values) == 25
-        for value, _ in values:
-            assert value == b'i am in all'
+        results = [r async for r in etcd.get_all()]
+        assert len(results) == 25
+        for result in results:
+            assert result.value == b'i am in all'
 
     @pytest.mark.asyncio
     async def test_sort_order(self, etcd):
@@ -529,15 +520,15 @@ class TestEtcd3:
             etcdctl('put', f'/doot/{k}', v)
 
         keys = ''
-        async for value, meta in etcd.get_prefix('/doot', sort_order='ascend'):
-            keys += remove_prefix(meta.key.decode('utf-8'), '/doot/')
+        async for result in etcd.get_prefix(b'/doot', sort_order='ascend'):
+            keys += remove_prefix(result.key.decode('utf-8'), '/doot/')
 
         assert keys == initial_keys
 
         reverse_keys = ''
-        async for value, meta in etcd.get_prefix('/doot',
-                                                 sort_order='descend'):
-            reverse_keys += remove_prefix(meta.key.decode('utf-8'), '/doot/')
+        async for result in etcd.get_prefix(b'/doot',
+                                            sort_order='descend'):
+            reverse_keys += remove_prefix(result.key.decode('utf-8'), '/doot/')
 
         assert reverse_keys == ''.join(reversed(initial_keys))
 
@@ -561,23 +552,23 @@ class TestEtcd3:
     @pytest.mark.asyncio
     async def test_lease_single_key(self, etcd):
         lease = await etcd.lease(1)
-        await etcd.put('/doot/lease_test', 'this is a lease', lease=lease)
+        await etcd.put(b'/doot/lease_test', b'this is a lease', lease=lease)
         assert (await lease.keys()) == [b'/doot/lease_test']
 
     @pytest.mark.asyncio
     async def test_lease_expire(self, etcd):
-        key = '/doot/lease_test_expire'
+        key = b'/doot/lease_test_expire'
         lease = await etcd.lease(1)
-        await etcd.put(key, 'this is a lease', lease=lease)
+        await etcd.put(key, b'this is a lease', lease=lease)
         assert (await lease.keys()) == [utils.to_bytes(key)]
-        v, _ = await etcd.get(key)
-        assert v == b'this is a lease'
+        result = await etcd.get(key)
+        assert result.value == b'this is a lease'
         assert (await lease.remaining_ttl()) <= (await lease.granted_ttl())
 
         # wait for the lease to expire
         await asyncio.sleep((await lease.granted_ttl()) + 2)
-        v, _ = await etcd.get(key)
-        assert v is None
+        result = await etcd.get(key)
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_member_list(self, etcd):
@@ -592,87 +583,87 @@ class TestEtcd3:
 
     @pytest.mark.asyncio
     async def test_lock_acquire(self, etcd):
-        lock = etcd.lock('lock-1', ttl=10)
+        lock = etcd.lock(b'lock-1', ttl=10)
         assert (await lock.acquire()) is True
-        assert (await etcd.get(lock.key))[0] is not None
+        assert (await etcd.get(lock.key)).value is not None
         assert (await lock.acquire(timeout=0)) is False
         assert (await lock.acquire(timeout=1)) is False
 
     @pytest.mark.asyncio
     async def test_lock_release(self, etcd):
-        lock = etcd.lock('lock-2', ttl=10)
+        lock = etcd.lock(b'lock-2', ttl=10)
         assert (await lock.acquire()) is True
-        assert (await etcd.get(lock.key))[0] is not None
+        assert (await etcd.get(lock.key)).value is not None
         assert (await lock.release()) is True
-        v, _ = await etcd.get(lock.key)
-        assert v is None
+        result = await etcd.get(lock.key)
+        assert result is None
         assert (await lock.acquire()) is True
         assert (await lock.release()) is True
         assert (await lock.acquire(timeout=None)) is True
 
     @pytest.mark.asyncio
     async def test_lock_expire(self, etcd):
-        lock = etcd.lock('lock-3', ttl=3)
+        lock = etcd.lock(b'lock-3', ttl=3)
         assert (await lock.acquire()) is True
-        assert (await etcd.get(lock.key))[0] is not None
+        assert (await etcd.get(lock.key)).value is not None
         # wait for the lease to expire
         await asyncio.sleep(9)
-        v, _ = await etcd.get(lock.key)
-        assert v is None
+        result = await etcd.get(lock.key)
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_lock_refresh(self, etcd):
-        lock = etcd.lock('lock-4', ttl=3)
+        lock = etcd.lock(b'lock-4', ttl=3)
         assert (await lock.acquire()) is True
-        assert (await etcd.get(lock.key))[0] is not None
+        assert (await etcd.get(lock.key)).value is not None
         # sleep for the same total time as test_lock_expire, but refresh each
         # second
         for _ in range(9):
             await asyncio.sleep(1)
             await lock.refresh()
 
-        assert (await etcd.get(lock.key))[0] is not None
+        assert (await etcd.get(lock.key)).value is not None
 
     @pytest.mark.asyncio
     async def test_lock_is_acquired(self, etcd):
-        lock1 = etcd.lock('lock-5', ttl=2)
+        lock1 = etcd.lock(b'lock-5', ttl=2)
         assert (await lock1.is_acquired()) is False
 
-        lock2 = etcd.lock('lock-5', ttl=2)
+        lock2 = etcd.lock(b'lock-5', ttl=2)
         await lock2.acquire()
         assert (await lock2.is_acquired()) is True
         await lock2.release()
 
-        lock3 = etcd.lock('lock-5', ttl=2)
+        lock3 = etcd.lock(b'lock-5', ttl=2)
         await lock3.acquire()
         assert (await lock3.is_acquired()) is True
         assert (await lock2.is_acquired()) is False
 
     @pytest.mark.asyncio
     async def test_lock_context_manager(self, etcd):
-        async with etcd.lock('lock-6', ttl=2) as lock:
+        async with etcd.lock(b'lock-6', ttl=2) as lock:
             assert (await lock.is_acquired()) is True
         assert (await lock.is_acquired()) is False
 
     @pytest.mark.asyncio
     async def test_lock_contended(self, etcd):
-        lock1 = etcd.lock('lock-7', ttl=2)
+        lock1 = etcd.lock(b'lock-7', ttl=2)
         await lock1.acquire()
-        lock2 = etcd.lock('lock-7', ttl=2)
+        lock2 = etcd.lock(b'lock-7', ttl=2)
         await lock2.acquire()
         assert (await lock1.is_acquired()) is False
         assert (await lock2.is_acquired()) is True
 
     @pytest.mark.asyncio
     async def test_lock_double_acquire_release(self, etcd):
-        lock = etcd.lock('lock-8', ttl=10)
+        lock = etcd.lock(b'lock-8', ttl=10)
         assert (await lock.acquire(0)) is True
         assert (await lock.acquire(0)) is False
         assert (await lock.release()) is True
 
     @pytest.mark.asyncio
     async def test_lock_acquire_none(self, etcd):
-        lock = etcd.lock('lock-9', ttl=10)
+        lock = etcd.lock(b'lock-9', ttl=10)
         assert (await lock.acquire(None)) is True
         # This will succeed after 10 seconds since the TTL will expire and the
         # lock is not refreshed
@@ -687,7 +678,7 @@ class TestEtcd3:
         etcd.kvstub = kv_mock
 
         with pytest.raises(aetcd.exceptions.InternalServerError):
-            await etcd.get('foo')
+            await etcd.get(b'foo')
 
     @pytest.mark.asyncio
     async def test_connection_failure_exception_on_connection_failure(self, etcd, rpc_error):
@@ -698,7 +689,7 @@ class TestEtcd3:
         etcd.kvstub = kv_mock
 
         with pytest.raises(aetcd.exceptions.ConnectionFailedError):
-            await etcd.get('foo')
+            await etcd.get(b'foo')
 
     @pytest.mark.asyncio
     async def test_connection_timeout_exception_on_connection_timeout(self, etcd, rpc_error):
@@ -711,7 +702,7 @@ class TestEtcd3:
         etcd.kvstub = MockKvstub()
 
         with pytest.raises(aetcd.exceptions.ConnectionTimeoutError):
-            await etcd.get('foo')
+            await etcd.get(b'foo')
 
     @pytest.mark.asyncio
     async def test_grpc_exception_on_unknown_code(self, etcd, rpc_error):
@@ -721,8 +712,8 @@ class TestEtcd3:
         etcd.kvstub = kv_mock
 
         try:
-            await etcd.get('foo')
-        except aetcd.rpc.AioRpcError:
+            await etcd.get(b'foo')
+        except aetcd.ClientError:
             pass
         else:
             raise RuntimeError
@@ -853,11 +844,11 @@ class TestClient(object):
 
     @pytest.mark.asyncio
     async def test_compact(self, etcd):
-        await etcd.put('/foo', 'x')
-        _, meta = await etcd.get('/foo')
-        revision = meta.mod_revision
+        await etcd.put(b'/foo', b'x')
+        result = await etcd.get(b'/foo')
+        revision = result.mod_revision
         await etcd.compact(revision)
-        with pytest.raises(aetcd.rpc.AioRpcError):
+        with pytest.raises(aetcd.ClientError):
             await etcd.compact(revision)
 
     @pytest.mark.asyncio
@@ -868,7 +859,7 @@ class TestClient(object):
                 username='root',
                 password='pwd',
             )
-            await client.get('probably-invalid-key')
+            await client.get(b'probably-invalid-key')
 
     def test_username_or_password_auth_raises_exception(self):
         with pytest.raises(Exception, match='both username and password'):

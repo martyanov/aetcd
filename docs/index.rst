@@ -20,4 +20,5 @@
    reference/leases
    reference/locks
    reference/members
+   reference/rtypes
    reference/utils

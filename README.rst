@@ -48,9 +48,9 @@ Test the client:
     import aetcd
 
     async with aetcd.Client() as client:
-        await client.put('foo', 'bar')
-        await client.get('foo')
-        await client.delete('foo')
+        await client.put(b'foo', b'bar')
+        await client.get(b'foo')
+        await client.delete(b'foo')
 
 Acknowledgements
 ~~~~~~~~~~~~~~~~

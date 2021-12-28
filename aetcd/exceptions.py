@@ -20,6 +20,10 @@ class InternalServerError(ClientError):
     """Raises on etcd internal server errors."""
 
 
+class InvalidArgumentError(ClientError):
+    """Raises on errors associated with incorrect arguments being provided."""
+
+
 class PreconditionFailedError(ClientError):
     """Raises on etcd server precondition errors."""
 

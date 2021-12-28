@@ -8,6 +8,7 @@ from . import leases
 from . import locks
 from . import members
 from . import rpc
+from . import rtypes
 from . import transactions
 from . import utils
 from . import watch
@@ -18,14 +19,15 @@ _EXCEPTIONS_BY_CODE = {
     rpc.StatusCode.FAILED_PRECONDITION: exceptions.PreconditionFailedError,
     rpc.StatusCode.INTERNAL: exceptions.InternalServerError,
     rpc.StatusCode.UNAVAILABLE: exceptions.ConnectionFailedError,
+    rpc.StatusCode.INVALID_ARGUMENT: exceptions.InvalidArgumentError,
 }
 
 
 def _translate_exception(error: rpc.AioRpcError):
     exc = _EXCEPTIONS_BY_CODE.get(error.code())
     if exc is not None:
-        raise exc
-    raise
+        raise exc(error.details()) from error
+    raise exceptions.ClientError(error)
 
 
 def _handle_errors(f):
@@ -79,16 +81,6 @@ class Transactions(object):
         self.txn = transactions.Txn
 
 
-class KVMetadata(object):
-    def __init__(self, keyvalue, header):
-        self.key = keyvalue.key
-        self.create_revision = keyvalue.create_revision
-        self.mod_revision = keyvalue.mod_revision
-        self.version = keyvalue.version
-        self.lease_id = keyvalue.lease
-        self.response_header = header
-
-
 class Status(object):
     def __init__(self, version, db_size, leader, raft_index, raft_term):
         self.version = version
@@ -115,6 +107,8 @@ class Alarm(object):
 
 class Client:
     """Client provides and manages a client session.
+
+    The client can be used as an async context manager.
 
     :param str host:
         etcd host address, as IP address or a domain name.
@@ -175,7 +169,7 @@ class Client:
         self.leasestub = None
         self.maintenancestub = None
 
-    async def connect(self):
+    async def connect(self) -> None:
         """Establish a connection to an etcd."""
         if self.channel:
             return
@@ -200,8 +194,8 @@ class Client:
         self.leasestub = rpc.LeaseStub(self.channel)
         self.maintenancestub = rpc.MaintenanceStub(self.channel)
 
-    async def close(self):
-        """Close all connections and free allocated resources."""
+    async def close(self) -> None:
+        """Close established connection and frees allocated resources."""
         if self.channel:
             self.watcher.close()
             await self.channel.close()
@@ -216,29 +210,36 @@ class Client:
 
     @_handle_errors
     @_ensure_connected
-    async def get(self, key, serializable=False):
+    async def get(
+        self,
+        key: bytes,
+        serializable: bool = False,
+    ) -> typing.Optional[rtypes.Get]:
         """Get the value of a key from etcd.
 
-        :param key:
+        :param bytes key:
             Key in etcd to get.
 
-        :param serializable:
+        :param bool serializable:
             Whether to allow serializable reads. This can result in stale reads.
 
         :return:
-            A tuple of (bytes, :class:`~aetcd.client.KVMetadata`).
+            A instance of :class:`~aetcd.rtypes.Get` or ``None``, if the
+            the key was not found.
 
-        Example usage:
+        Usage example:
 
         .. code-block:: python
 
             import aetcd
             client = aetcd.Client()
-            await client.get('/thing/key')
+            await client.get(b'key')
         """
         range_request = self._build_get_range_request(
             key,
-            serializable=serializable)
+            serializable=serializable,
+        )
+
         range_response = await self.kvstub.Range(
             range_request,
             timeout=self._timeout,
@@ -246,26 +247,31 @@ class Client:
         )
 
         if range_response.count < 1:
-            return None, None
-        else:
-            kv = range_response.kvs.pop()
-            return kv.value, KVMetadata(kv, range_response.header)
+            return None
+
+        return rtypes.Get(range_response.header, range_response.kvs.pop())
 
     @_handle_errors
     @_ensure_connected
-    async def get_prefix(self, key_prefix, sort_order=None, sort_target='key',
-                         keys_only=False):
+    async def get_prefix(
+        self,
+        key_prefix: bytes,
+        sort_order: typing.Optional[str] = None,
+        sort_target: str = 'key',
+        keys_only: bool = False,
+    ) -> typing.AsyncGenerator[rtypes.Get, None]:
         """Get a range of keys with a prefix.
 
-        :param key_prefix:
+        :param bytes key_prefix:
             First key in range.
 
-        :returns:
-            A sequence of (bytes, :class:`~aetcd.client.KVMetadata`) tuples.
+        :return:
+            An async generator that produces a series of :class:`~aetcd.rtypes.Get` or
+            ``None``, if no requested keys were found.
         """
         range_request = self._build_get_range_request(
             key=key_prefix,
-            range_end=utils.prefix_range_end(utils.to_bytes(key_prefix)),
+            range_end=utils.prefix_range_end(key_prefix),
             sort_order=sort_order,
             sort_target=sort_target,
             keys_only=keys_only,
@@ -279,31 +285,36 @@ class Client:
 
         if range_response.count < 1:
             return
-        else:
-            for kv in range_response.kvs:
-                yield (kv.value, KVMetadata(kv, range_response.header))
+
+        for kv in range_response.kvs:
+            yield rtypes.Get(range_response.header, kv)
 
     @_handle_errors
     @_ensure_connected
-    async def get_range(self, range_start, range_end, sort_order=None,
-                        sort_target='key', **kwargs):
+    async def get_range(
+        self,
+        range_start: bytes,
+        range_end: bytes,
+        sort_order: typing.Optional[str] = None,
+        sort_target: str = 'key',
+    ) -> typing.AsyncGenerator[rtypes.Get, None]:
         """Get a range of keys.
 
-        :param range_start:
+        :param bytes range_start:
             First key in range.
 
-        :param range_end:
+        :param bytes range_end:
             Last key in range.
 
         :return:
-            A sequence of (bytes, :class:`~aetcd.client.KVMetadata`) tuples.
+            An async generator that produces a series of :class:`~aetcd.rtypes.Get` or
+            ``None``, if no requested keys were found.
         """
         range_request = self._build_get_range_request(
             key=range_start,
             range_end=range_end,
             sort_order=sort_order,
             sort_target=sort_target,
-            **kwargs,
         )
 
         range_response = await self.kvstub.Range(
@@ -314,18 +325,23 @@ class Client:
 
         if range_response.count < 1:
             return
-        else:
-            for kv in range_response.kvs:
-                yield (kv.value, KVMetadata(kv, range_response.header))
+
+        for kv in range_response.kvs:
+            yield rtypes.Get(range_response.header, kv)
 
     @_handle_errors
     @_ensure_connected
-    async def get_all(self, sort_order=None, sort_target='key',
-                      keys_only=False):
+    async def get_all(
+        self,
+        sort_order=None,
+        sort_target='key',
+        keys_only=False,
+    ) -> typing.AsyncGenerator[rtypes.Get, None]:
         """Get all keys currently stored in etcd.
 
         :return:
-            A sequence of (bytes, :class:`~aetcd.client.KVMetadata`) tuples.
+            An async generator that produces a series of :class:`~aetcd.rtypes.Get` or
+            ``None``, if no requested keys were found.
         """
         range_request = self._build_get_range_request(
             key=b'\0',
@@ -343,16 +359,22 @@ class Client:
 
         if range_response.count < 1:
             return
-        else:
-            for kv in range_response.kvs:
-                yield (kv.value, KVMetadata(kv, range_response.header))
+
+        for kv in range_response.kvs:
+            yield rtypes.Get(range_response.header, kv)
 
     @_handle_errors
     @_ensure_connected
-    async def put(self, key, value, lease=None, prev_kv=False):
+    async def put(
+        self,
+        key: bytes,
+        value: bytes,
+        lease: typing.Optional[typing.Union[int, leases.Lease]] = None,
+        prev_kv: bool = False,
+    ) -> rtypes.Put:
         """Save a value to etcd.
 
-        :param key:
+        :param bytes key:
             Key in etcd to set.
 
         :param bytes value:
@@ -361,28 +383,108 @@ class Client:
         :param lease:
             Lease to associate with this key.
         :type lease:
-            either :class:`~aetcd.leases.Lease`, or int (ID of lease)
+            either :class:`~aetcd.leases.Lease`, or ``int`` (ID of a lease), or ``None``
 
         :param bool prev_kv:
-            Return the previous key-value pair.
+            Whether to return the previous key-value pair.
 
         :return:
-            A response containing a header and the prev_kv.
+            A instance of :class:`~aetcd.rtypes.Put`.
 
-        Example usage:
+        Usage example:
 
         .. code-block:: python
 
             import aetcd
             client = aetcd.Client()
-            await client.put('/thing/key', 'hello world')
+            await client.put(b'key', b'value')
         """
-        put_request = self._build_put_request(key, value, lease=lease,
-                                              prev_kv=prev_kv)
-        return await self.kvstub.Put(
+        put_request = self._build_put_request(
+            key,
+            value,
+            lease=lease,
+            prev_kv=prev_kv,
+        )
+
+        put_response = await self.kvstub.Put(
             put_request,
             timeout=self._timeout,
             metadata=self.metadata,
+        )
+
+        return rtypes.Put(
+            put_response.header,
+            put_response.prev_kv if prev_kv else None,
+        )
+
+    @_handle_errors
+    @_ensure_connected
+    async def delete(
+        self,
+        key: bytes,
+        prev_kv: bool = False,
+    ) -> rtypes.Delete:
+        """Delete a single key in etcd.
+
+        If a number of deleted keys is above zero, the result is interpreted as truthy,
+        otherwise as falsy.
+
+        :param bytes key:
+            Key in etcd to delete.
+
+        :param bool prev_kv:
+            Whether to return the deleted key-value pair.
+
+        :return:
+            A instance of :class:`~aetcd.rtypes.Delete`.
+
+        Usage example:
+
+        .. code-block:: python
+
+            import aetcd
+            client = aetcd.Client()
+            await client.put(b'key', b'value')
+            result = await client.delete(b'key')
+            bool(result) is True
+        """
+        delete_request = self._build_delete_request(key, prev_kv=prev_kv)
+
+        delete_response = await self.kvstub.DeleteRange(
+            delete_request,
+            timeout=self._timeout,
+            metadata=self.metadata,
+        )
+
+        return rtypes.Delete(
+            delete_response.header,
+            delete_response.deleted,
+            delete_response.prev_kvs.pop()
+            if prev_kv and delete_response.deleted > 0
+            else None,
+        )
+
+    @_handle_errors
+    @_ensure_connected
+    async def delete_prefix(
+        self,
+        prefix: bytes,
+    ) -> rtypes.Delete:
+        """Delete a range of keys with a prefix in etcd."""
+        delete_request = self._build_delete_request(
+            prefix,
+            range_end=utils.prefix_range_end(prefix),
+        )
+
+        delete_response = await self.kvstub.DeleteRange(
+            delete_request,
+            timeout=self._timeout,
+            metadata=self.metadata,
+        )
+
+        return rtypes.Delete(
+            delete_response.header,
+            delete_response.deleted,
         )
 
     @_handle_errors
@@ -419,49 +521,6 @@ class Client:
         )
 
         return status
-
-    @_handle_errors
-    @_ensure_connected
-    async def delete(self, key, prev_kv=False, return_response=False):
-        """Delete a single key in etcd.
-
-        :param key:
-            Key in etcd to delete.
-
-        :param bool prev_kv:
-            Whether to return the deleted key-value pair.
-
-        :param bool return_response:
-            Return the full response
-
-        :return: ``True`` if the key has been deleted when
-                  ``return_response`` is ``False`` and a response containing
-                  a header, the number of deleted keys and prev_kvs when
-                  ``return_response`` is ``True``.
-        """
-        delete_request = self._build_delete_request(key, prev_kv=prev_kv)
-        delete_response = await self.kvstub.DeleteRange(
-            delete_request,
-            timeout=self._timeout,
-            metadata=self.metadata,
-        )
-        if return_response:
-            return delete_response
-        return delete_response.deleted >= 1
-
-    @_handle_errors
-    @_ensure_connected
-    async def delete_prefix(self, prefix):
-        """Delete a range of keys with a prefix in etcd."""
-        delete_request = self._build_delete_request(
-            prefix,
-            range_end=utils.prefix_range_end(utils.to_bytes(prefix)),
-        )
-        return await self.kvstub.DeleteRange(
-            delete_request,
-            timeout=self._timeout,
-            metadata=self.metadata,
-        )
 
     @_handle_errors
     @_ensure_connected
@@ -523,11 +582,11 @@ class Client:
                  Use ``events_iterator`` to get the events of key changes
                  and ``cancel`` to cancel the watch request.
 
-        Example usage:
+        Usage example:
 
         .. code-block:: python
 
-            events, cancel = await client.watch('/doot/key')
+            events, cancel = await client.watch(b'key')
             async for event in events:
                 print(event)
         """
@@ -633,20 +692,20 @@ class Client:
         :return:
             A tuple of (operation status, responses).
 
-        Example usage:
+        Usage example:
 
         .. code-block:: python
 
             await client.transaction(
                 compare=[
-                    client.transactions.value('/doot/testing') == 'doot',
-                    client.transactions.version('/doot/testing') > 0,
+                    client.transactions.value(b'key') == b'value',
+                    client.transactions.version(b'key') > 0,
                 ],
                 success=[
-                    client.transactions.put('/doot/testing', 'success'),
+                    client.transactions.put(b'key', b'success'),
                 ],
                 failure=[
-                    client.transactions.put('/doot/testing', 'failure'),
+                    client.transactions.put(b'key', b'failure'),
                 ]
             )
         """
@@ -676,8 +735,12 @@ class Client:
             elif response_type == 'response_range':
                 range_kvs = []
                 for kv in response.response_range.kvs:
-                    range_kvs.append((kv.value,
-                                      KVMetadata(kv, txn_response.header)))
+                    range_kvs.append(
+                        (
+                            kv.value,
+                            rtypes.Get(txn_response.header, kv),
+                        ),
+                    )
 
                 responses.append(range_kvs)
 
@@ -995,24 +1058,29 @@ class Client:
             file_obj.write(response.blob)
 
     @staticmethod
-    def _build_get_range_request(key,
-                                 range_end=None,
-                                 limit=None,
-                                 revision=None,
-                                 sort_order=None,
-                                 sort_target='key',
-                                 serializable=False,
-                                 keys_only=False,
-                                 count_only=None,
-                                 min_mod_revision=None,
-                                 max_mod_revision=None,
-                                 min_create_revision=None,
-                                 max_create_revision=None):
+    def _build_get_range_request(
+        key: bytes,
+        range_end: typing.Optional[bytes] = None,
+        limit: typing.Optional[int] = None,
+        revision: typing.Optional[int] = None,
+        sort_order: typing.Optional[str] = None,
+        sort_target: str = 'key',
+        serializable: bool = False,
+        keys_only: bool = False,
+        count_only: typing.Optional[int] = None,
+        min_mod_revision: typing.Optional[int] = None,
+        max_mod_revision: typing.Optional[int] = None,
+        min_create_revision: typing.Optional[int] = None,
+        max_create_revision: typing.Optional[int] = None,
+    ) -> rpc.RangeRequest:
+        # TODO: Add missing request parameters: limit, revision, count_only,
+        #       mid_mod_revision, max_mod_revision, min_create_revision, max_create_revision.
         range_request = rpc.RangeRequest()
-        range_request.key = utils.to_bytes(key)
-        range_request.keys_only = keys_only
+
+        range_request.key = key
+
         if range_end is not None:
-            range_request.range_end = utils.to_bytes(range_end)
+            range_request.range_end = range_end
 
         if sort_order is None:
             range_request.sort_order = rpc.RangeRequest.NONE
@@ -1038,29 +1106,43 @@ class Client:
                              '"version", "create", "mod" or "value"')
 
         range_request.serializable = serializable
+        range_request.keys_only = keys_only
 
         return range_request
 
     @staticmethod
-    def _build_put_request(key, value, lease=None, prev_kv=False):
+    def _build_put_request(
+        key: bytes,
+        value: bytes,
+        lease: typing.Optional[typing.Union[int, leases.Lease]] = None,
+        prev_kv: bool = False,
+        ignore_value: bool = False,
+        ignore_lease: bool = False,
+    ):
+        # TODO: Add missing request parameters: ignore_value, ignore_lease
         put_request = rpc.PutRequest()
-        put_request.key = utils.to_bytes(key)
-        put_request.value = utils.to_bytes(value)
+
+        put_request.key = key
+        put_request.value = value
         put_request.lease = utils.lease_to_id(lease)
         put_request.prev_kv = prev_kv
 
         return put_request
 
     @staticmethod
-    def _build_delete_request(key,
-                              range_end=None,
-                              prev_kv=False):
+    def _build_delete_request(
+        key: bytes,
+        range_end: typing.Optional[bytes] = None,
+        prev_kv: bool = False,
+    ):
         delete_request = rpc.DeleteRangeRequest()
-        delete_request.key = utils.to_bytes(key)
-        delete_request.prev_kv = prev_kv
+
+        delete_request.key = key
 
         if range_end is not None:
-            delete_request.range_end = utils.to_bytes(range_end)
+            delete_request.range_end = range_end
+
+        delete_request.prev_kv = prev_kv
 
         return delete_request
 
