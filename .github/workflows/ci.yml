@@ -9,18 +9,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python_version: ['3.8', '3.9']
+        os: ['ubuntu-20.04']
+        python: ['3.8', '3.9']
     steps:
-    - name: Checkout source repository for Python ${{ matrix.python_version }}
+    - name: Checkout source repository for Python ${{ matrix.python }}
       uses: actions/checkout@v2
 
-    - name: Set up Python ${{ matrix.python_version }}
+    - name: Set up Python ${{ matrix.python }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ matrix.python_version }}
+        python-version: ${{ matrix.python }}
 
-    - name: Run lint on Python ${{ matrix.python_version }}
+    - name: Run lint on Python ${{ matrix.python }}
       run: make lint
 
   test:
@@ -29,24 +29,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python_version: ['3.8', '3.9']
+        etcd: ['3.3.27']
+        os: ['ubuntu-20.04']
+        python: ['3.8', '3.9']
     steps:
-      - name: Checkout source repository for Python ${{ matrix.python_version }}
+      - name: Checkout source repository for Python ${{ matrix.python }}
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python_version }}
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python_version }}
+          python-version: ${{ matrix.python }}
+
+      - name: Set up etcd ${{ matrix.etcd }}
+        run: |
+          pushd /tmp
+          wget https://github.com/etcd-io/etcd/releases/download/v${{ matrix.etcd }}/etcd-v${{ matrix.etcd }}-linux-amd64.tar.gz -O - | tar -xz
+          sudo cp etcd-v${{ matrix.etcd }}-linux-amd64/etcd* /usr/bin
+          popd
 
       - name: Set up dependencies for Python ${{ matrix.python_version }}
-        run: |
-          sudo apt install etcd
-          sudo systemctl stop etcd
-          make bootstrap
+        run: make bootstrap
 
-      - name: Run tests on Python ${{ matrix.python_version }}
+      - name: Run tests on Python ${{ matrix.python }}
         run: make testcluster
 
       - name: Run genproto
@@ -55,7 +60,7 @@ jobs:
 
       - name: Upload coverage report
         uses: codecov/codecov-action@v2
-        if: matrix.python_version == '3.9' && github.ref == 'refs/heads/master'
+        if: matrix.python == '3.9' && github.ref == 'refs/heads/master'
 
   distrib:
     name: Build and upload the packages
@@ -65,17 +70,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python_version: ['3.9']
+        os: ['ubuntu-20.04']
+        python: ['3.9']
 
     steps:
-      - name: Checkout source repository for Python ${{ matrix.python_version }}
+      - name: Checkout source repository for Python ${{ matrix.python }}
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python_version }}
+      - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python_version }}
+          python-version: ${{ matrix.python }}
 
       - name: Build the packages
         run: make build
