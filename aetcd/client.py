@@ -1,13 +1,7 @@
 import asyncio
 import functools
 import inspect
-import tempfile
 import typing
-import warnings
-
-import aiofiles
-import grpclib
-import grpclib.client
 
 from . import exceptions
 from . import leases
@@ -20,15 +14,15 @@ from . import watch
 
 
 _EXCEPTIONS_BY_CODE = {
-    grpclib.Status.INTERNAL: exceptions.InternalServerError,
-    grpclib.Status.UNAVAILABLE: exceptions.ConnectionFailedError,
-    grpclib.Status.DEADLINE_EXCEEDED: exceptions.ConnectionTimeoutError,
-    grpclib.Status.FAILED_PRECONDITION: exceptions.PreconditionFailedError,
+    rpc.StatusCode.DEADLINE_EXCEEDED: exceptions.ConnectionTimeoutError,
+    rpc.StatusCode.FAILED_PRECONDITION: exceptions.PreconditionFailedError,
+    rpc.StatusCode.INTERNAL: exceptions.InternalServerError,
+    rpc.StatusCode.UNAVAILABLE: exceptions.ConnectionFailedError,
 }
 
 
-def _translate_exception(error: grpclib.GRPCError):
-    exc = _EXCEPTIONS_BY_CODE.get(error.status)
+def _translate_exception(error: rpc.AioRpcError):
+    exc = _EXCEPTIONS_BY_CODE.get(error.code())
     if exc is not None:
         raise exc
     raise
@@ -39,15 +33,15 @@ def _handle_errors(f):
         async def handler(*args, **kwargs):
             try:
                 return await f(*args, **kwargs)
-            except grpclib.GRPCError as exc:
-                _translate_exception(exc)
+            except rpc.AioRpcError as e:
+                _translate_exception(e)
     elif inspect.isasyncgenfunction(f):
         async def handler(*args, **kwargs):
             try:
                 async for data in f(*args, **kwargs):
                     yield data
-            except grpclib.GRPCError as exc:
-                _translate_exception(exc)
+            except rpc.AioRpcError as e:
+                _translate_exception(e)
     else:
         raise RuntimeError(
             f'provided function {f.__name__!r} is neither a coroutine nor an async generator')
@@ -134,14 +128,11 @@ class Client:
     :param str password:
         Password to be used for authentication.
 
-    :param ca_cert: (EXPERIMENTAL)
+    :param int timeout:
+        Connection timeout in secods.
 
-    :param cert_key: (EXPERIMENTAL)
-
-    :param cert_cert: (EXPERIMENTAL)
-
-    :param dict grpc_options:
-        (UNIMPLEMENTED) Options provided to underlying gRPC channel.
+    :param dict options:
+        Options provided to the underlying gRPC channel.
 
     :return:
         A :class:`~aetcd.client.Client` instance.
@@ -154,35 +145,20 @@ class Client:
         username: typing.Optional[str] = None,
         password: typing.Optional[str] = None,
         timeout: typing.Optional[int] = None,
-        ca_cert: typing.Optional[str] = None,
-        cert_key: typing.Optional[str] = None,
-        cert_cert: typing.Optional[str] = None,
-        grpc_options: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        options: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ):
         self._host = host
         self._port = port
         self._username = username
         self._password = password
         self._timeout = timeout
-
-        if grpc_options is not None:
-            warnings.warn('gRPC options are not supported for now')
-
-        cert_params = (cert_cert, cert_key)
-        if any(cert_params) and None in cert_params:
-            raise ValueError(
-                'to use a secure channel ca_cert is required by itself, '
-                'or cert_cert and cert_key must both be specified')
+        self._options = options or {}
 
         cred_params = (self._username, self._password)
         if any(cred_params) and None in cred_params:
             raise Exception(
                 'if using authentication credentials both username and password '
                 'must be provided')
-
-        self._ca_cert = ca_cert
-        self._cert_key = cert_key
-        self._cert_cert = cert_cert
 
         self._init_channel_attrs()
 
@@ -192,7 +168,6 @@ class Client:
         # These attributes will be assigned during opening of GRPC channel
         self.channel = None
         self.metadata = None
-        self.uses_secure_channel = None
         self.auth_stub = None
         self.kvstub = None
         self.watcher = None
@@ -205,25 +180,8 @@ class Client:
         if self.channel:
             return
 
-        cert_params = [c is not None for c in (self._cert_cert, self._cert_key)]
-        if self._ca_cert is not None:
-            self.channel = grpclib.client.Channel(host=self._host, port=self._port, ssl=True)
-
-            if all(cert_params):
-                ca_bundle = tempfile.mktemp()
-                async with aiofiles.open(ca_bundle, 'w') as cert_bundle:
-                    for cf_path in (self._cert_cert, self._ca_cert):
-                        async with aiofiles.open(cf_path) as cf:
-                            await cert_bundle.write(await cf.read())
-                    await cert_bundle.flush()
-                    self.channel._ssl.load_cert_chain(ca_bundle, keyfile=self._cert_key)
-            else:
-                self.channel._ssl.load_cert_chain(self._ca_cert, keyfile=self._cert_key)
-
-            self.uses_secure_channel = True
-        else:
-            self.uses_secure_channel = False
-            self.channel = grpclib.client.Channel(host=self._host, port=self._port)
+        target = f'{self._host}:{self._port}'
+        self.channel = rpc.insecure_channel(target, options=self._options.items())
 
         cred_params = [c is not None for c in (self._username, self._password)]
         if all(cred_params):
@@ -246,7 +204,7 @@ class Client:
         """Close all connections and free allocated resources."""
         if self.channel:
             self.watcher.close()
-            self.channel.close()
+            await self.channel.close()
             self._init_channel_attrs()
 
     async def __aenter__(self):
@@ -771,10 +729,12 @@ class Client:
     @_handle_errors
     @_ensure_connected
     async def refresh_lease(self, lease_id):
-        return await self.leasestub.LeaseKeepAlive(
+        async for reply in self.leasestub.LeaseKeepAlive(
             [rpc.LeaseKeepAliveRequest(ID=lease_id)],
             timeout=self._timeout,
-            metadata=self.metadata)
+            metadata=self.metadata,
+        ):
+            return reply
 
     @_handle_errors
     @_ensure_connected
@@ -1025,13 +985,13 @@ class Client:
             A file-like object to write the database contents in.
         """
         snapshot_request = rpc.SnapshotRequest()
-        snapshot_responses = await self.maintenancestub.Snapshot(
+        snapshot_responses = self.maintenancestub.Snapshot(
             snapshot_request,
             timeout=self._timeout,
             metadata=self.metadata,
         )
 
-        for response in snapshot_responses:
+        async for response in snapshot_responses:
             file_obj.write(response.blob)
 
     @staticmethod

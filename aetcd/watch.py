@@ -1,8 +1,6 @@
 import asyncio
 import logging
 
-import grpclib
-
 from . import events
 from . import exceptions
 from . import rpc
@@ -95,49 +93,36 @@ class Watcher(object):
 
             await self._cancel_no_lock(watch_id)
 
+    async def _consume_stream(self):
+        while True:
+            request = await self._request_queue.get()
+
+            if request is None:
+                break
+
+            yield request
+
     async def _setup_stream(self):
         if self._sender_task:
             return
 
-        async def sender_task(timeout, metadata, run_receiver_fn):
-            async with self._watch_stub.Watch.open(timeout=timeout,
-                                                   metadata=metadata) as stream:
-                while True:
-                    request = await self._request_queue.get()
-
-                    if request is None:
-                        break
-
-                    try:
-                        await stream.send_message(request)
-                        await run_receiver_fn(stream)
-                    except grpclib.exceptions.StreamTerminatedError as err:
-                        await self._handle_steam_termination(err)
-
-                await stream.end()
-
-        self._sender_task = asyncio.get_running_loop().create_task(
-            sender_task(self.timeout, self._metadata, self._run_receiver),
-        )
-
-    async def _run_receiver(self, stream):
-        if self._receiver_task:
-            return
-
-        async def receiver_task():
-            nonlocal stream
-            try:
-                while True:
-                    response = await stream.recv_message()
-
+        async def sender_task(timeout, metadata):
+            async for response in self._watch_stub.Watch(
+                self._consume_stream(),
+                timeout=timeout,
+                metadata=metadata,
+            ):
+                try:
                     if not response:
                         break
 
                     await self._handle_response(response)
-            except grpclib.exceptions.StreamTerminatedError as err:
-                await self._handle_steam_termination(err)
+                except rpc.AioRpcError as e:
+                    self._handle_steam_termination(e)
 
-        self._receiver_task = asyncio.get_running_loop().create_task(receiver_task())
+        self._sender_task = asyncio.get_running_loop().create_task(
+            sender_task(self.timeout, self._metadata),
+        )
 
     async def _handle_steam_termination(self, err):
         async with self._lock:

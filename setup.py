@@ -45,9 +45,7 @@ setuptools.setup(
         'setuptools_scm==6.0.1',
     ],
     install_requires=[
-        'aiofiles>=0.5,<0.9',
-        'grpclib>=0.4.1,<0.5',
-        'protobuf>=3,<4',
+        'grpcio>1.41,<2',
         'tenacity>=6,<9',
     ],
     extras_require={
@@ -69,6 +67,7 @@ setuptools.setup(
             'pifpaf==3.1.5',
             'pytest-asyncio==0.16.0',
             'pytest-cov==3.0.0',
+            'pytest-mock==3.6.1',
             'pytest==6.2.5',
         ],
     },
