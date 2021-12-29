@@ -450,7 +450,7 @@ class TestEtcd3:
         for i in range(5):
             etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
-        results = [r async for r in etcd.get_prefix(b'/doot/range')]
+        results = list(await etcd.get_prefix(b'/doot/range'))
         assert len(results) == 20
         for result in results:
             assert result.value == b'i am a range'
@@ -463,8 +463,7 @@ class TestEtcd3:
         for i in range(5):
             etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
-        results = [r async for r in etcd.get_prefix(b'/doot/range',
-                                                    keys_only=True)]
+        results = list(await etcd.get_prefix(b'/doot/range', keys_only=True))
         assert len(results) == 20
         for result in results:
             assert result.key.startswith(b'/doot/range')
@@ -478,14 +477,14 @@ class TestEtcd3:
             else:
                 etcdctl('put', '/doot/' + char, 'i am not in range')
 
-        results = [r async for r in etcd.get_range(b'/doot/a', b'/doot/p')]
+        results = list(await etcd.get_range(b'/doot/a', b'/doot/p'))
         assert len(results) == 15
         for result in results:
             assert result.value == b'i am in range'
 
     @pytest.mark.asyncio
     async def test_all_not_found_error(self, etcd):
-        result = [x async for x in etcd.get_all()]
+        result = list(await etcd.get_all())
         assert not result
 
     @pytest.mark.asyncio
@@ -493,7 +492,7 @@ class TestEtcd3:
         for i in range(5):
             etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
-        results = [r async for r in etcd.get_prefix(b'/doot/range')]
+        results = list(await etcd.get_prefix(b'/doot/range'))
         assert not results
 
     @pytest.mark.asyncio
@@ -503,7 +502,7 @@ class TestEtcd3:
 
         for i in range(5):
             etcdctl('put', f'/doot/notrange{i}', 'i am in all')
-        results = [r async for r in etcd.get_all()]
+        results = list(await etcd.get_all())
         assert len(results) == 25
         for result in results:
             assert result.value == b'i am in all'
@@ -520,14 +519,16 @@ class TestEtcd3:
             etcdctl('put', f'/doot/{k}', v)
 
         keys = ''
-        async for result in etcd.get_prefix(b'/doot', sort_order='ascend'):
+        for result in await etcd.get_prefix(b'/doot', sort_order='ascend'):
             keys += remove_prefix(result.key.decode('utf-8'), '/doot/')
 
         assert keys == initial_keys
 
         reverse_keys = ''
-        async for result in etcd.get_prefix(b'/doot',
-                                            sort_order='descend'):
+        for result in await etcd.get_prefix(
+            b'/doot',
+            sort_order='descend',
+        ):
             reverse_keys += remove_prefix(result.key.decode('utf-8'), '/doot/')
 
         assert reverse_keys == ''.join(reversed(initial_keys))

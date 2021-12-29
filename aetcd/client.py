@@ -215,7 +215,7 @@ class Client:
         key: bytes,
         serializable: bool = False,
     ) -> typing.Optional[rtypes.Get]:
-        """Get the value of a key from etcd.
+        """Get a single key from the key-value store.
 
         :param bytes key:
             Key in etcd to get.
@@ -259,15 +259,14 @@ class Client:
         sort_order: typing.Optional[str] = None,
         sort_target: str = 'key',
         keys_only: bool = False,
-    ) -> typing.AsyncGenerator[rtypes.Get, None]:
-        """Get a range of keys with a prefix.
+    ) -> rtypes.GetRange:
+        """Get a range of keys with a prefix from the key-value store.
 
         :param bytes key_prefix:
             First key in range.
 
         :return:
-            An async generator that produces a series of :class:`~aetcd.rtypes.Get` or
-            ``None``, if no requested keys were found.
+            An instance of :class:`~aetcd.rtypes.GetRange`.
         """
         range_request = self._build_get_range_request(
             key=key_prefix,
@@ -283,11 +282,12 @@ class Client:
             metadata=self.metadata,
         )
 
-        if range_response.count < 1:
-            return
-
-        for kv in range_response.kvs:
-            yield rtypes.Get(range_response.header, kv)
+        return rtypes.GetRange(
+            range_response.header,
+            range_response.kvs,
+            range_response.more,
+            range_response.count,
+        )
 
     @_handle_errors
     @_ensure_connected
@@ -297,8 +297,8 @@ class Client:
         range_end: bytes,
         sort_order: typing.Optional[str] = None,
         sort_target: str = 'key',
-    ) -> typing.AsyncGenerator[rtypes.Get, None]:
-        """Get a range of keys.
+    ) -> rtypes.GetRange:
+        """Get a range of keys from the key-value store.
 
         :param bytes range_start:
             First key in range.
@@ -307,8 +307,7 @@ class Client:
             Last key in range.
 
         :return:
-            An async generator that produces a series of :class:`~aetcd.rtypes.Get` or
-            ``None``, if no requested keys were found.
+            An instance of :class:`~aetcd.rtypes.GetRange`.
         """
         range_request = self._build_get_range_request(
             key=range_start,
@@ -323,11 +322,12 @@ class Client:
             metadata=self.metadata,
         )
 
-        if range_response.count < 1:
-            return
-
-        for kv in range_response.kvs:
-            yield rtypes.Get(range_response.header, kv)
+        return rtypes.GetRange(
+            range_response.header,
+            range_response.kvs,
+            range_response.more,
+            range_response.count,
+        )
 
     @_handle_errors
     @_ensure_connected
@@ -336,12 +336,11 @@ class Client:
         sort_order=None,
         sort_target='key',
         keys_only=False,
-    ) -> typing.AsyncGenerator[rtypes.Get, None]:
-        """Get all keys currently stored in etcd.
+    ) -> rtypes.GetRange:
+        """Get all keys from the key-value store.
 
         :return:
-            An async generator that produces a series of :class:`~aetcd.rtypes.Get` or
-            ``None``, if no requested keys were found.
+            An instance of :class:`~aetcd.rtypes.GetRange`.
         """
         range_request = self._build_get_range_request(
             key=b'\0',
@@ -357,11 +356,12 @@ class Client:
             metadata=self.metadata,
         )
 
-        if range_response.count < 1:
-            return
-
-        for kv in range_response.kvs:
-            yield rtypes.Get(range_response.header, kv)
+        return rtypes.GetRange(
+            range_response.header,
+            range_response.kvs,
+            range_response.more,
+            range_response.count,
+        )
 
     @_handle_errors
     @_ensure_connected
@@ -372,7 +372,7 @@ class Client:
         lease: typing.Optional[typing.Union[int, leases.Lease]] = None,
         prev_kv: bool = False,
     ) -> rtypes.Put:
-        """Save a value to etcd.
+        """Put the given key into the key-value store.
 
         :param bytes key:
             Key in etcd to set.
@@ -424,7 +424,7 @@ class Client:
         key: bytes,
         prev_kv: bool = False,
     ) -> rtypes.Delete:
-        """Delete a single key in etcd.
+        """Delete a single key from the key-value store.
 
         If a number of deleted keys is above zero, the result is interpreted as truthy,
         otherwise as falsy.
@@ -469,8 +469,8 @@ class Client:
     async def delete_prefix(
         self,
         prefix: bytes,
-    ) -> rtypes.Delete:
-        """Delete a range of keys with a prefix in etcd."""
+    ) -> rtypes.DeleteRange:
+        """Delete a range of keys with a prefix from the key-value store."""
         delete_request = self._build_delete_request(
             prefix,
             range_end=utils.prefix_range_end(prefix),
@@ -482,9 +482,10 @@ class Client:
             metadata=self.metadata,
         )
 
-        return rtypes.Delete(
+        return rtypes.DeleteRange(
             delete_response.header,
             delete_response.deleted,
+            delete_response.prev_kvs,
         )
 
     @_handle_errors

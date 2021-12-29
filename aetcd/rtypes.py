@@ -75,7 +75,7 @@ class KeyValue(_Slotted):
 
 
 class Get(KeyValue):
-    """Represents the result of get operations."""
+    """Represents the result of get operation."""
 
     __slots__ = [
         'header',
@@ -88,8 +88,58 @@ class Get(KeyValue):
         super().__init__(keyvalue)
 
 
+class GetRange:
+    """Represents the result of get range operation.
+
+    Implements ``__bool__``, ``__iter__`` and ``__getitem__``.
+
+    If a number of ``count`` keys is above zero iterpret the result as truthy,
+    otherwise as falsy.
+
+    It is possible to iterate over the collection or use indexing, as a result
+    :class:`~aetcd.rtypes.KeyValue` will be returned.
+
+    .. note::
+        Also, it is possible to access raw ``kvs`` provided by the underlying
+        ``RPC`` call, that is the most effective way to access the keys from performance
+        and memory perspective, but keep in mind that the overall performance highly
+        depends on usage pattern and the size of dataset, use wisely. Generally,
+        it is recommended to use :class:`~aetcd.rtypes.KeyValue` wrapped results.
+    """
+
+    def __init__(self, header, kvs, more, count):
+        #: Response header.
+        self.header: ResponseHeader = ResponseHeader(header)
+
+        #: The list of key-value pairs matched by the range request,
+        #: empty when ``count_only`` flag was set in the request.
+        self.kvs = kvs
+
+        #: Indicates if there are more keys to return in the requested range.
+        self.more: bool = more
+
+        #: The number of keys within the requested range.
+        self.count: int = count
+
+    def __bool__(self):
+        return self.count > 0
+
+    def __iter__(self):
+        for kv in self.kvs:
+            yield KeyValue(kv)
+
+    def __getitem__(self, index):
+        return KeyValue(self.kvs[index])
+
+    def __repr__(self):
+        return (
+            f'{self.__class__.__name__}'
+            f'[header={self.header!r}, more={self.more!r}, count={self.count!r}]'
+        )
+
+
 class Put(_Slotted):
-    """Represents the result of put operations."""
+    """Represents the result of put operation."""
 
     __slots__ = [
         'header',
@@ -106,9 +156,11 @@ class Put(_Slotted):
 
 
 class Delete(_Slotted):
-    """Represents the result of delete operations.
+    """Represents the result of delete operation.
 
-    If a number of deleted keys is above zero, iterpret the result as truthy,
+    Implements ``__bool__``.
+
+    If a number of ``deleted`` keys is above zero, iterpret the result as truthy,
     otherwise as falsy.
     """
 
@@ -131,3 +183,51 @@ class Delete(_Slotted):
 
     def __bool__(self):
         return self.deleted > 0
+
+
+class DeleteRange:
+    """Represents the result of delete range operation.
+
+    Implements ``__bool__``, ``__iter__`` and ``__getitem__``.
+
+    If a number of ``deleted`` keys is above zero iterpret the result as truthy,
+    otherwise as falsy.
+
+    It is possible to iterate over the collection or use indexing, as a result
+    :class:`~aetcd.rtypes.KeyValue` will be returned.
+
+    .. note::
+        Also, it is possible to access raw ``prev_kvs`` provided by the underlying
+        ``RPC`` call, that is the most effective way to access the keys from performance
+        and memory perspective, but keep in mind that the overall performance highly
+        depends on usage pattern and the size of dataset, use wisely. Generally,
+        it is recommended to use :class:`~aetcd.rtypes.KeyValue` wrapped results.
+    """
+
+    def __init__(self, header, deleted, prev_kvs):
+        #: Response header.
+        self.header: ResponseHeader = ResponseHeader(header)
+
+        #: The number of keys deleted by the delete request.
+        self.deleted = deleted
+
+        #: The list of deleted key-value pairs matched by the delete range
+        #: request, filled when ``prev_kv`` flag was set in the request,
+        #: otherwise empty.
+        self.prev_kvs = prev_kvs
+
+    def __bool__(self):
+        return self.deleted > 0
+
+    def __iter__(self):
+        for kv in self.prev_kvs:
+            yield KeyValue(self.prev_kvs)
+
+    def __getitem__(self, index):
+        return KeyValue(self.prev_kvs[index])
+
+    def __repr__(self):
+        return (
+            f'{self.__class__.__name__}'
+            f'[header={self.header!r}, deleted={self.deleted!r}]'
+        )
