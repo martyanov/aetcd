@@ -34,6 +34,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     project_urls={
         'Documentation': 'https://aetcd.readthedocs.io',
@@ -42,7 +43,7 @@ setuptools.setup(
     },
     python_requires='>=3.8,<4.0',
     setup_requires=[
-        'setuptools_scm==6.0.1',
+        'setuptools_scm==6.3.2',
     ],
     install_requires=[
         'grpcio>1.41,<2',
