@@ -12,12 +12,28 @@ def response_header(mocker):
 
 
 @pytest.fixture
-def keyvalue(mocker):
-    kv = mocker.Mock()
-    kv.key = b'k'
-    kv.value = b'v'
-    kv.create_revision = 11
-    kv.mod_revision = 12
-    kv.version = 13
-    kv.lease = 14
-    return kv
+def keyvalue_maker(mocker):
+    def _keyvalue_maker(key, value, create_revision, mod_revision, version, lease):
+        kv = mocker.Mock()
+        kv.key = key
+        kv.value = value
+        kv.create_revision = create_revision
+        kv.mod_revision = mod_revision
+        kv.version = version
+        kv.lease = lease
+        return kv
+    return _keyvalue_maker
+
+
+@pytest.fixture
+def keyvalue(keyvalue_maker):
+    return keyvalue_maker(b'k', b'v', 11, 12, 13, 14)
+
+
+@pytest.fixture
+def keyvalues(keyvalue_maker):
+    return [
+        keyvalue_maker(*(b'k1', b'v1', 11, 12, 13, 14)),
+        keyvalue_maker(*(b'k2', b'v2', 11, 12, 13, 14)),
+        keyvalue_maker(*(b'k3', b'v3', 11, 12, 13, 14)),
+    ]

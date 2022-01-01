@@ -85,3 +85,35 @@ def test_get_type(response_header, keyvalue):
     assert g.mod_revision == keyvalue.mod_revision
     assert g.version == keyvalue.version
     assert g.lease == keyvalue.lease
+
+
+def test_get_range_type(response_header, keyvalues):
+    gr = aetcd.rtypes.GetRange(response_header, keyvalues, False, 3)
+
+    assert gr.header.cluster_id == response_header.cluster_id
+    assert gr.header.member_id == response_header.member_id
+    assert gr.header.revision == response_header.revision
+    assert gr.header.raft_term == response_header.raft_term
+    assert gr
+    assert bool(gr) is True
+    assert gr.more is False
+    assert len(gr) == gr.count == 3
+    for i, g in enumerate(gr):
+        assert type(g) is aetcd.rtypes.KeyValue
+        assert type(gr[i]) is aetcd.rtypes.KeyValue
+        assert g.key == gr[i].key == keyvalues[i].key
+        assert g.value == gr[i].value == keyvalues[i].value
+        assert g.create_revision == gr[i].create_revision == keyvalues[i].create_revision
+        assert g.mod_revision == gr[i].mod_revision == keyvalues[i].mod_revision
+        assert g.version == gr[i].version == keyvalues[i].version
+        assert g.lease == gr[i].lease == keyvalues[i].lease
+    assert gr.kvs == keyvalues
+    assert str(gr) == repr(gr) == (
+        f'GetRange[header={gr.header!r}, more={gr.more!r}, count={gr.count!r}]'
+    )
+
+    gr = aetcd.rtypes.GetRange(response_header, [], False, 0)
+
+    assert not gr
+    assert bool(gr) is False
+    assert len(gr) == gr.count == 0

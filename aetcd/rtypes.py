@@ -91,7 +91,7 @@ class Get(KeyValue):
 class GetRange:
     """Represents the result of get range operation.
 
-    Implements ``__bool__``, ``__iter__`` and ``__getitem__``.
+    Implements ``__bool__``, ``__len__``, ``__iter__`` and ``__getitem__``.
 
     If a number of ``count`` keys is above zero iterpret the result as truthy,
     otherwise as falsy.
@@ -123,6 +123,9 @@ class GetRange:
 
     def __bool__(self):
         return self.count > 0
+
+    def __len__(self):
+        return len(self.kvs)
 
     def __iter__(self):
         for kv in self.kvs:
