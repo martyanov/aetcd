@@ -672,52 +672,39 @@ class TestEtcd3:
 
     @pytest.mark.asyncio
     async def test_internal_exception_on_internal_error(self, etcd, rpc_error):
-        await etcd.connect()
-        exception = rpc_error(aetcd.rpc.StatusCode.INTERNAL)
         kv_mock = unittest.mock.MagicMock()
-        kv_mock.Range.side_effect = exception
+        kv_mock.Range.side_effect = rpc_error(aetcd.rpc.StatusCode.INTERNAL)
         etcd.kvstub = kv_mock
 
         with pytest.raises(aetcd.exceptions.InternalServerError):
-            await etcd.get(b'foo')
+            await etcd.get(b'key')
 
     @pytest.mark.asyncio
     async def test_connection_failure_exception_on_connection_failure(self, etcd, rpc_error):
-        await etcd.connect()
-        exception = rpc_error(aetcd.rpc.StatusCode.UNAVAILABLE)
         kv_mock = unittest.mock.MagicMock()
-        kv_mock.Range.side_effect = exception
+        kv_mock.Range.side_effect = rpc_error(aetcd.rpc.StatusCode.UNAVAILABLE)
         etcd.kvstub = kv_mock
 
         with pytest.raises(aetcd.exceptions.ConnectionFailedError):
-            await etcd.get(b'foo')
+            await etcd.get(b'key')
 
     @pytest.mark.asyncio
     async def test_connection_timeout_exception_on_connection_timeout(self, etcd, rpc_error):
-        ex = rpc_error(aetcd.rpc.StatusCode.DEADLINE_EXCEEDED)
-
-        class MockKvstub:
-            async def Range(self, *args, **kwargs):  # noqa: N802
-                raise ex
-
-        etcd.kvstub = MockKvstub()
+        kv_mock = unittest.mock.MagicMock()
+        kv_mock.Range.side_effect = rpc_error(aetcd.rpc.StatusCode.DEADLINE_EXCEEDED)
+        etcd.kvstub = kv_mock
 
         with pytest.raises(aetcd.exceptions.ConnectionTimeoutError):
-            await etcd.get(b'foo')
+            await etcd.get(b'key')
 
     @pytest.mark.asyncio
     async def test_grpc_exception_on_unknown_code(self, etcd, rpc_error):
-        exception = rpc_error(aetcd.rpc.StatusCode.DATA_LOSS)
         kv_mock = unittest.mock.MagicMock()
-        kv_mock.Range.side_effect = exception
+        kv_mock.Range.side_effect = rpc_error(aetcd.rpc.StatusCode.DATA_LOSS)
         etcd.kvstub = kv_mock
 
-        try:
-            await etcd.get(b'foo')
-        except aetcd.ClientError:
-            pass
-        else:
-            raise RuntimeError
+        with pytest.raises(aetcd.exceptions.ClientError):
+            await etcd.get(b'key')
 
     @pytest.mark.asyncio
     async def test_status_member(self, etcd):
