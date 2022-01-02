@@ -44,7 +44,7 @@ test: bootstrap
 	$(PYTHON) -m pytest
 
 testcluster: bootstrap
-	$(PYTHON) -m pifpaf -e PYTHON run etcd --cluster -- $(PYTHON) -m pytest
+	$(PYTHON) -m pifpaf -e TEST run etcd --cluster -- $(PYTHON) -m pytest
 
 testreport: bootstrap
 	$(PYTHON) -m pytest --cov-report=html
