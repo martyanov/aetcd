@@ -117,3 +117,28 @@ def test_get_range_type(response_header, keyvalues):
     assert not gr
     assert bool(gr) is False
     assert len(gr) == gr.count == 0
+
+
+def test_put_type(response_header, keyvalue):
+    p = aetcd.rtypes.Put(response_header, keyvalue)
+
+    assert getattr(p, '__dict__', None) is None
+    assert p.__slots__ == [
+        'header',
+        'prev_kv',
+    ]
+    assert type(p.prev_kv) is aetcd.rtypes.KeyValue
+    assert p.header.cluster_id == response_header.cluster_id
+    assert p.header.member_id == response_header.member_id
+    assert p.header.revision == response_header.revision
+    assert p.header.raft_term == response_header.raft_term
+    assert p.prev_kv.key == keyvalue.key
+    assert p.prev_kv.value == keyvalue.value
+    assert p.prev_kv.create_revision == keyvalue.create_revision
+    assert p.prev_kv.mod_revision == keyvalue.mod_revision
+    assert p.prev_kv.version == keyvalue.version
+    assert p.prev_kv.lease == keyvalue.lease
+
+    p = aetcd.rtypes.Put(response_header)
+
+    assert p.prev_kv is None
