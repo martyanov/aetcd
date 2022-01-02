@@ -1,7 +1,6 @@
 import asyncio
 import base64
 import contextlib
-import json
 import os
 import signal
 import string
@@ -20,19 +19,6 @@ import aetcd.rpc
 import aetcd.utils as utils
 
 
-os.environ['ETCDCTL_API'] = '3'
-
-
-def etcdctl(*args):
-    endpoint = os.environ.get('TEST_ETCD_HTTP_URL')
-    if endpoint:
-        args = ['--endpoints', endpoint] + list(args)
-    args = ['etcdctl', '-w', 'json'] + list(args)
-    print(' '.join(args))
-    output = subprocess.check_output(args)
-    return json.loads(output.decode('utf-8'))
-
-
 @contextlib.contextmanager
 def _out_quorum():
     pids = subprocess.check_output(['pgrep', '-f', '--', '--name pifpaf[12]'])
@@ -46,23 +32,10 @@ def _out_quorum():
             os.kill(pid, signal.SIGCONT)
 
 
-@pytest.fixture
-def rpc_error(mocker):
-    def _rpc_error(code, details=''):
-        return aetcd.rpc.AioRpcError(
-            code=code,
-            initial_metadata=mocker.Mock(),
-            trailing_metadata=mocker.Mock(),
-            details=details,
-        )
-
-    return _rpc_error
-
-
 class TestEtcd3:
 
     @pytest.fixture
-    async def etcd(self):
+    async def etcd(self, etcdctl):
         endpoint = os.environ.get('TEST_ETCD_HTTP_URL')
         timeout = 5
         if endpoint:
@@ -92,31 +65,31 @@ class TestEtcd3:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_get_key(self, etcd, string='xxx'):
+    async def test_get_key(self, etcdctl, etcd, string='xxx'):
         etcdctl('put', '/doot/a_key', string)
         result = await etcd.get(b'/doot/a_key')
         assert result.value == string.encode('utf-8')
 
     @pytest.mark.asyncio
-    async def test_get_random_key(self, etcd, string='xxxx'):
+    async def test_get_random_key(self, etcdctl, etcd, string='xxxx'):
         etcdctl('put', '/doot/' + string, 'dootdoot')
         result = await etcd.get(b'/doot/' + string.encode('utf-8'))
         assert result.value == b'dootdoot'
 
     @pytest.mark.asyncio
-    async def test_get_have_cluster_revision(self, etcd, string='xxx'):
+    async def test_get_have_cluster_revision(self, etcdctl, etcd, string='xxx'):
         etcdctl('put', '/doot/' + string, 'dootdoot')
         result = await etcd.get(b'/doot/' + string.encode('utf-8'))
         assert result.header.revision > 0
 
     @pytest.mark.asyncio
-    async def test_put_key(self, etcd, string='xxx'):
+    async def test_put_key(self, etcdctl, etcd, string='xxx'):
         await etcd.put(b'/doot/put_1', string.encode('utf-8'))
         out = etcdctl('get', '/doot/put_1')
         assert base64.b64decode(out['kvs'][0]['value']) == string.encode('utf-8')
 
     @pytest.mark.asyncio
-    async def test_get_key_serializable(self, etcd, key='foo', string='xxx'):
+    async def test_get_key_serializable(self, etcdctl, etcd, key='foo', string='xxx'):
         etcdctl('put', '/doot/' + key, string)
         with _out_quorum():
             result = await etcd.get(b'/doot/' + key.encode('utf-8'), serializable=True)
@@ -128,13 +101,13 @@ class TestEtcd3:
         assert response.header.revision > 0
 
     @pytest.mark.asyncio
-    async def test_put_has_prev_kv(self, etcd):
+    async def test_put_has_prev_kv(self, etcdctl, etcd):
         etcdctl('put', '/doot/put_1', 'old_value')
         response = await etcd.put(b'/doot/put_1', b'xxxx', prev_kv=True)
         assert response.prev_kv.value == b'old_value'
 
     @pytest.mark.asyncio
-    async def test_delete_key(self, etcd):
+    async def test_delete_key(self, etcdctl, etcd):
         etcdctl('put', '/doot/delete_this', 'delete pls')
 
         result = await etcd.get(b'/doot/delete_this')
@@ -155,7 +128,7 @@ class TestEtcd3:
         assert result.header.revision > 0
 
     @pytest.mark.asyncio
-    async def test_delete_has_prev_kv(self, etcd):
+    async def test_delete_has_prev_kv(self, etcdctl, etcd):
         etcdctl('put', '/doot/delete_this', 'old_value')
         result = await etcd.delete(
             b'/doot/delete_this',
@@ -165,7 +138,7 @@ class TestEtcd3:
         assert result.deleted == 1
 
     @pytest.mark.asyncio
-    async def test_delete_keys_with_prefix(self, etcd):
+    async def test_delete_keys_with_prefix(self, etcdctl, etcd):
         etcdctl('put', '/foo/1', 'bar')
         etcdctl('put', '/foo/2', 'baz')
 
@@ -185,7 +158,7 @@ class TestEtcd3:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_watch_key(self, etcd):
+    async def test_watch_key(self, etcdctl, etcd):
         def update_etcd(v):
             etcdctl('put', '/doot/watch', v)
             out = etcdctl('get', '/doot/watch')
@@ -223,7 +196,7 @@ class TestEtcd3:
         t.join()
 
     @pytest.mark.asyncio
-    async def test_watch_key_with_revision_compacted(self, etcd):
+    async def test_watch_key_with_revision_compacted(self, etcdctl, etcd):
         etcdctl('put', '/watchcompation', '0')  # Some data to compact
         result = await etcd.get(b'/watchcompation')
         revision = result.mod_revision
@@ -326,7 +299,7 @@ class TestEtcd3:
                     pass
 
     @pytest.mark.asyncio
-    async def test_watch_prefix(self, etcd):
+    async def test_watch_prefix(self, etcdctl, etcd):
         def update_etcd(v):
             etcdctl('put', '/doot/watch/prefix/' + v, v)
             out = etcdctl('get', '/doot/watch/prefix/' + v)
@@ -383,7 +356,7 @@ class TestEtcd3:
             pass
 
     @pytest.mark.asyncio
-    async def test_transaction_success(self, etcd):
+    async def test_transaction_success(self, etcdctl, etcd):
         etcdctl('put', '/doot/txn', 'dootdoot')
         await etcd.transaction(
             compare=[etcd.transactions.value(b'/doot/txn') == b'dootdoot'],
@@ -394,7 +367,7 @@ class TestEtcd3:
         assert base64.b64decode(out['kvs'][0]['value']) == b'success'
 
     @pytest.mark.asyncio
-    async def test_transaction_failure(self, etcd):
+    async def test_transaction_failure(self, etcdctl, etcd):
         etcdctl('put', '/doot/txn', 'notdootdoot')
         await etcd.transaction(
             compare=[etcd.transactions.value(b'/doot/txn') == b'dootdoot'],
@@ -443,7 +416,7 @@ class TestEtcd3:
         assert status is False
 
     @pytest.mark.asyncio
-    async def test_get_prefix(self, etcd):
+    async def test_get_prefix(self, etcdctl, etcd):
         for i in range(20):
             etcdctl('put', f'/doot/range{i}', 'i am a range')
 
@@ -456,7 +429,7 @@ class TestEtcd3:
             assert result.value == b'i am a range'
 
     @pytest.mark.asyncio
-    async def test_get_prefix_keys_only(self, etcd):
+    async def test_get_prefix_keys_only(self, etcdctl, etcd):
         for i in range(20):
             etcdctl('put', f'/doot/range{i}', 'i am a range')
 
@@ -470,7 +443,7 @@ class TestEtcd3:
             assert not result.value
 
     @pytest.mark.asyncio
-    async def test_get_range(self, etcd):
+    async def test_get_range(self, etcdctl, etcd):
         for char in string.ascii_lowercase:
             if char < 'p':
                 etcdctl('put', '/doot/' + char, 'i am in range')
@@ -488,7 +461,7 @@ class TestEtcd3:
         assert not result
 
     @pytest.mark.asyncio
-    async def test_range_not_found_error(self, etcd):
+    async def test_range_not_found_error(self, etcdctl, etcd):
         for i in range(5):
             etcdctl('put', f'/doot/notrange{i}', 'i am a not range')
 
@@ -496,7 +469,7 @@ class TestEtcd3:
         assert not results
 
     @pytest.mark.asyncio
-    async def test_get_all(self, etcd):
+    async def test_get_all(self, etcdctl, etcd):
         for i in range(20):
             etcdctl('put', f'/doot/range{i}', 'i am in all')
 
@@ -508,7 +481,7 @@ class TestEtcd3:
             assert result.value == b'i am in all'
 
     @pytest.mark.asyncio
-    async def test_sort_order(self, etcd):
+    async def test_sort_order(self, etcdctl, etcd):
         def remove_prefix(string, prefix):
             return string[len(prefix):]
 
@@ -718,7 +691,7 @@ class TestEtcd3:
         assert isinstance((await etcd.hash()), int)
 
     @pytest.mark.asyncio
-    async def test_snapshot(self, etcd):
+    async def test_snapshot(self, etcdctl, etcd):
         with tempfile.NamedTemporaryFile() as f:
             await etcd.snapshot(f)
             f.flush()

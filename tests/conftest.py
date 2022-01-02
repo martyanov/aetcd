@@ -1,5 +1,19 @@
 import pytest
 
+import aetcd.rpc
+
+
+@pytest.fixture
+def rpc_error(mocker):
+    def _rpc_error(code, details=''):
+        return aetcd.rpc.AioRpcError(
+            code=code,
+            initial_metadata=mocker.Mock(),
+            trailing_metadata=mocker.Mock(),
+            details=details,
+        )
+    return _rpc_error
+
 
 @pytest.fixture
 def response_header(mocker):
