@@ -178,7 +178,7 @@ class Delete(_Slotted):
         self.header: ResponseHeader = ResponseHeader(header)
 
         #: The number of keys deleted by the delete request.
-        self.deleted = deleted
+        self.deleted: int = deleted
 
         #: If ``prev_kv`` flag was set in the request,
         #: the previous key-value pair will be stored in this attribute.
@@ -191,7 +191,7 @@ class Delete(_Slotted):
 class DeleteRange:
     """Represents the result of delete range operation.
 
-    Implements ``__bool__``, ``__iter__`` and ``__getitem__``.
+    Implements ``__bool__``, ``__len__``, ``__iter__`` and ``__getitem__``.
 
     If a number of ``deleted`` keys is above zero iterpret the result as truthy,
     otherwise as falsy.
@@ -212,7 +212,7 @@ class DeleteRange:
         self.header: ResponseHeader = ResponseHeader(header)
 
         #: The number of keys deleted by the delete request.
-        self.deleted = deleted
+        self.deleted: int = deleted
 
         #: The list of deleted key-value pairs matched by the delete range
         #: request, filled when ``prev_kv`` flag was set in the request,
@@ -222,9 +222,12 @@ class DeleteRange:
     def __bool__(self):
         return self.deleted > 0
 
+    def __len__(self):
+        return len(self.prev_kvs)
+
     def __iter__(self):
         for kv in self.prev_kvs:
-            yield KeyValue(self.prev_kvs)
+            yield KeyValue(kv)
 
     def __getitem__(self, index):
         return KeyValue(self.prev_kvs[index])
