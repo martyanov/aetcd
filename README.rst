@@ -5,7 +5,7 @@ Python asyncio-based client for etcd
    :alt: Build Status
    :target: https://github.com/martyanov/aetcd/actions
 
-.. image:: https://codecov.io/gh/martyanov/aetcd/coverage.svg?branch=master
+.. image:: https://codecov.io/gh/martyanov/aetcd/branch/master/graph/badge.svg
    :alt: Coverage report
    :target: https://codecov.io/gh/martyanov/aetcd/branch/master
 
