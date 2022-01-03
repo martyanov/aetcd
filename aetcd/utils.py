@@ -8,16 +8,16 @@ def prefix_range_end(prefix):
     return bytes(s)
 
 
-def to_bytes(maybe_bytestring):
+def to_bytes(maybe_bytes):
     """Encode string to bytes.
 
     Convenience function to do a simple encode('utf-8') if the input is not
     already bytes. Returns the data unmodified if the input is bytes.
     """
-    if isinstance(maybe_bytestring, bytes):
-        return maybe_bytestring
+    if isinstance(maybe_bytes, bytes):
+        return maybe_bytes
     else:
-        return maybe_bytestring.encode('utf-8')
+        return maybe_bytes.encode('utf-8')
 
 
 def lease_to_id(lease):

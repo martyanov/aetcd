@@ -12,7 +12,6 @@ import pytest
 
 import aetcd.exceptions
 import aetcd.rpc
-import aetcd.utils
 
 
 @contextlib.contextmanager
@@ -486,17 +485,6 @@ class TestAlarms(object):
 
         await etcd.disarm_alarm()
         assert len([a async for a in etcd.list_alarms()]) == 0
-
-
-class TestUtils(object):
-    def test_prefix_range_end(self):
-        assert aetcd.utils.prefix_range_end(b'foo') == b'fop'
-
-    def test_to_bytes(self):
-        assert isinstance(aetcd.utils.to_bytes(b'doot'), bytes) is True
-        assert isinstance(aetcd.utils.to_bytes('doot'), bytes) is True
-        assert aetcd.utils.to_bytes(b'doot') == b'doot'
-        assert aetcd.utils.to_bytes('doot') == b'doot'
 
 
 class TestClient(object):
