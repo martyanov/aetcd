@@ -9,10 +9,8 @@ import tempfile
 import threading
 import time
 import unittest.mock
-import urllib.parse
 
 import pytest
-import tenacity
 
 import aetcd.exceptions
 import aetcd.rpc
@@ -33,31 +31,6 @@ def _out_quorum():
 
 
 class TestEtcd3:
-
-    @pytest.fixture
-    async def etcd(self, etcdctl):
-        endpoint = os.environ.get('TEST_ETCD_HTTP_URL')
-        timeout = 5
-        if endpoint:
-            url = urllib.parse.urlparse(endpoint)
-            with aetcd.Client(
-                host=url.hostname,
-                port=url.port,
-                timeout=timeout,
-            ) as client:
-                yield client
-        else:
-            async with aetcd.Client() as client:
-                yield client
-
-        @tenacity.retry(wait=tenacity.wait_fixed(2), stop=tenacity.stop_after_attempt(3))
-        def delete_keys_definitely():
-            # clean up after fixture goes out of scope
-            etcdctl('del', '--prefix', '/')
-            out = etcdctl('get', '--prefix', '/')
-            assert 'kvs' not in out
-
-        delete_keys_definitely()
 
     @pytest.mark.asyncio
     async def test_get_unknown_key(self, etcd):
@@ -701,8 +674,7 @@ class TestEtcd3:
 
 class TestAlarms(object):
     @pytest.fixture
-    async def etcd(self):
-        etcd = aetcd.Client()
+    async def etcd(self, etcd):
         yield etcd
         await etcd.disarm_alarm()
         async for m in etcd.members():
@@ -766,9 +738,6 @@ class TestUtils(object):
 
 
 class TestClient(object):
-    @pytest.fixture
-    def etcd(self):
-        yield aetcd.Client()
 
     def test_sort_target(self, etcd):
         key = 'key'.encode('utf-8')
