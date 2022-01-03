@@ -11,6 +11,7 @@ def etcd_auth(etcdctl):
     yield
 
     etcdctl('--user', 'root:pwd', 'auth', 'disable', ignore_result=True)
+    etcdctl('role', 'delete', 'root')
     etcdctl('user', 'delete', 'root')
 
 
