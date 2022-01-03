@@ -31,7 +31,7 @@ async def test_lock_expire(etcd):
     assert (await lock.acquire()) is True
     assert (await etcd.get(lock.key)).value is not None
     # Wait for the lease to expire
-    await asyncio.sleep(9)
+    await asyncio.sleep(4)
     result = await etcd.get(lock.key)
     assert result is None
 
@@ -43,7 +43,7 @@ async def test_lock_refresh(etcd):
     assert (await etcd.get(lock.key)).value is not None
     # Sleep for the same total time as test_lock_expire, but refresh each
     # second
-    for _ in range(9):
+    for _ in range(4):
         await asyncio.sleep(1)
         await lock.refresh()
 

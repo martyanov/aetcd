@@ -15,9 +15,9 @@ import aetcd.utils
 @pytest.mark.asyncio
 async def test_watch_key(etcdctl, etcd):
     def update_etcd(v):
-        etcdctl('put', '/doot/watch', v)
-        out = etcdctl('get', '/doot/watch')
-        assert base64.b64decode(out['kvs'][0]['value']) == aetcd.utils.to_bytes(v)
+        etcdctl('put', '/key', v)
+        result = etcdctl('get', '/key')
+        assert base64.b64decode(result['kvs'][0]['value']) == aetcd.utils.to_bytes(v)
 
     def update_key():
         # Sleep to make watch can get the event
@@ -35,13 +35,13 @@ async def test_watch_key(etcdctl, etcd):
     t.start()
 
     change_count = 0
-    events_iterator, cancel = await etcd.watch(b'/doot/watch')
+    events_iterator, cancel = await etcd.watch(b'/key')
     async for event in events_iterator:
-        assert event.key == b'/doot/watch'
+        assert event.key == b'/key'
         assert event.value == aetcd.utils.to_bytes(str(change_count))
 
         # If cancel worked, we should not receive event 3
-        assert event.value != aetcd.utils.to_bytes('3')
+        assert event.value != b'3'
 
         change_count += 1
         if change_count > 2:
@@ -53,17 +53,17 @@ async def test_watch_key(etcdctl, etcd):
 
 @pytest.mark.asyncio
 async def test_watch_key_with_revision_compacted(etcdctl, etcd):
-    etcdctl('put', '/watchcompation', '0')  # Some data to compact
-    result = await etcd.get(b'/watchcompation')
+    etcdctl('put', '/key', '0')  # Some data to compact
+    result = await etcd.get(b'/key')
     revision = result.mod_revision
 
     # Compact etcd and test watcher
     await etcd.compact(revision)
 
     def update_etcd(v):
-        etcdctl('put', '/watchcompation', v)
-        out = etcdctl('get', '/watchcompation')
-        assert base64.b64decode(out['kvs'][0]['value']) == aetcd.utils.to_bytes(v)
+        etcdctl('put', '/key', v)
+        result = etcdctl('get', '/key')
+        assert base64.b64decode(result['kvs'][0]['value']) == aetcd.utils.to_bytes(v)
 
     def update_key():
         update_etcd('1')
@@ -75,7 +75,7 @@ async def test_watch_key_with_revision_compacted(etcdctl, etcd):
 
     async def watch_compacted_revision_test():
         events_iterator, cancel = await etcd.watch(
-            b'/watchcompation', start_revision=(revision - 1))
+            b'/key', start_revision=(revision - 1))
 
         error_raised = False
         compacted_revision = 0
@@ -92,9 +92,9 @@ async def test_watch_key_with_revision_compacted(etcdctl, etcd):
 
         change_count = 0
         events_iterator, cancel = await etcd.watch(
-            b'/watchcompation', start_revision=compacted_revision)
+            b'/key', start_revision=compacted_revision)
         async for event in events_iterator:
-            assert event.key == b'/watchcompation'
+            assert event.key == b'/key'
             assert event.value == aetcd.utils.to_bytes(str(change_count))
 
             # If cancel worked, we should not receive event 3
@@ -144,7 +144,7 @@ async def test_watch_timeout_on_establishment():
     async with aetcd.Client(timeout=3) as foo_etcd:
         @contextlib.asynccontextmanager
         async def slow_watch_mock(*args, **kwargs):
-            await asyncio.sleep(40)
+            await asyncio.sleep(5)
             yield 'foo'
 
         foo_etcd.watcher._watch_stub.Watch.open = slow_watch_mock  # noqa
@@ -158,12 +158,12 @@ async def test_watch_timeout_on_establishment():
 @pytest.mark.asyncio
 async def test_watch_prefix(etcdctl, etcd):
     def update_etcd(v):
-        etcdctl('put', '/doot/watch/prefix/' + v, v)
-        out = etcdctl('get', '/doot/watch/prefix/' + v)
-        assert base64.b64decode(out['kvs'][0]['value']) == aetcd.utils.to_bytes(v)
+        etcdctl('put', '/key' + v, v)
+        result = etcdctl('get', '/key' + v)
+        assert base64.b64decode(result['kvs'][0]['value']) == aetcd.utils.to_bytes(v)
 
     def update_key():
-        # sleep to make watch can get the event
+        # Sleep to make watch can get the event
         time.sleep(3)
         update_etcd('0')
         time.sleep(1)
@@ -179,13 +179,13 @@ async def test_watch_prefix(etcdctl, etcd):
 
     change_count = 0
     events_iterator, cancel = await etcd.watch_prefix(
-        '/doot/watch/prefix/')
+        '/key')
     async for event in events_iterator:
-        assert event.key == aetcd.utils.to_bytes(f'/doot/watch/prefix/{change_count}')
+        assert event.key == aetcd.utils.to_bytes(f'/key{change_count}')
         assert event.value == aetcd.utils.to_bytes(str(change_count))
 
         # If cancel worked, we should not receive event 3
-        assert event.value != aetcd.utils.to_bytes('3')
+        assert event.value != b'3'
 
         change_count += 1
         if change_count > 2:
@@ -198,10 +198,10 @@ async def test_watch_prefix(etcdctl, etcd):
 @pytest.mark.asyncio
 async def test_watch_prefix_once_sequential(etcd):
     with pytest.raises(aetcd.exceptions.WatchTimeoutError):
-        await etcd.watch_prefix_once('/doot/', 1)
+        await etcd.watch_prefix_once('/key', 1)
 
     with pytest.raises(aetcd.exceptions.WatchTimeoutError):
-        await etcd.watch_prefix_once('/doot/', 1)
+        await etcd.watch_prefix_once('/key', 1)
 
     with pytest.raises(aetcd.exceptions.WatchTimeoutError):
-        await etcd.watch_prefix_once('/doot/', 1)
+        await etcd.watch_prefix_once('/key', 1)
