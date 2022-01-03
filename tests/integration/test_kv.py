@@ -12,7 +12,7 @@ import pytest
 
 import aetcd.exceptions
 import aetcd.rpc
-import aetcd.utils as utils
+import aetcd.utils
 
 
 @contextlib.contextmanager
@@ -278,44 +278,6 @@ class TestEtcd3:
             reverse_keys += remove_prefix(result.key.decode('utf-8'), '/doot/')
 
         assert reverse_keys == ''.join(reversed(initial_keys))
-
-    @pytest.mark.asyncio
-    async def test_lease_grant(self, etcd):
-        lease = await etcd.lease(1)
-
-        assert isinstance(lease.ttl, int)
-        assert isinstance(lease.id, int)
-
-    @pytest.mark.asyncio
-    async def test_lease_revoke(self, etcd):
-        lease = await etcd.lease(1)
-        await lease.revoke()
-
-    @pytest.mark.asyncio
-    async def test_lease_keys_empty(self, etcd):
-        lease = await etcd.lease(1)
-        assert (await lease.keys()) == []
-
-    @pytest.mark.asyncio
-    async def test_lease_single_key(self, etcd):
-        lease = await etcd.lease(1)
-        await etcd.put(b'/doot/lease_test', b'this is a lease', lease=lease)
-        assert (await lease.keys()) == [b'/doot/lease_test']
-
-    @pytest.mark.asyncio
-    async def test_lease_expire(self, etcd):
-        key = b'/doot/lease_test_expire'
-        lease = await etcd.lease(1)
-        await etcd.put(key, b'this is a lease', lease=lease)
-        assert (await lease.keys()) == [utils.to_bytes(key)]
-        result = await etcd.get(key)
-        assert result.value == b'this is a lease'
-        assert (await lease.remaining_ttl()) <= (await lease.granted_ttl())
-
-        # wait for the lease to expire
-        await asyncio.sleep((await lease.granted_ttl()) + 2)
-        result = await etcd.get(key)
-        assert result is None
 
     @pytest.mark.asyncio
     async def test_member_list(self, etcd):
