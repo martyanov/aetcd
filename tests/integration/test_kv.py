@@ -357,36 +357,12 @@ class TestClient(object):
         with pytest.raises(aetcd.ClientError):
             await etcd.compact(revision)
 
-    @pytest.mark.asyncio
-    async def test_username_password_auth(self):
-        with self._enabled_auth_in_etcd():
-            # Create a client using username and password auth
-            client = aetcd.Client(
-                username='root',
-                password='pwd',
-            )
-            await client.get(b'probably-invalid-key')
-
     def test_username_or_password_auth_raises_exception(self):
         with pytest.raises(Exception, match='both username and password'):
             aetcd.Client(username='usr')
 
         with pytest.raises(Exception, match='both username and password'):
             aetcd.Client(password='pwd')
-
-    @staticmethod
-    @contextlib.contextmanager
-    def _enabled_auth_in_etcd():
-        subprocess.call(['etcdctl', '-w', 'json', 'user', 'add', 'root:pwd'])
-        subprocess.call(['etcdctl', 'auth', 'enable'])
-        try:
-            yield
-        finally:
-            subprocess.call(['etcdctl',
-                             '-w', 'json', '--user', 'root:pwd',
-                             'auth', 'disable'])
-            subprocess.call(['etcdctl', 'user', 'delete', 'root'])
-            subprocess.call(['etcdctl', 'role', 'delete', 'root'])
 
 
 class TestCompares(object):

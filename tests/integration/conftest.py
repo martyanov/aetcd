@@ -16,12 +16,14 @@ def setup():
 
 @pytest.fixture(scope='session')
 def etcdctl():
-    def _etcdctl(*args):
+    def _etcdctl(*args, ignore_result=False):
         endpoint = os.environ.get('TEST_ETCD_HTTP_URL')
         if endpoint:
             args = ['--endpoints', endpoint] + list(args)
         args = ['etcdctl', '-w', 'json'] + list(args)
         output = subprocess.check_output(args)
+        if ignore_result:
+            return None
         return json.loads(output.decode('utf-8'))
     return _etcdctl
 
