@@ -423,11 +423,8 @@ class Client:
         self,
         key: bytes,
         prev_kv: bool = False,
-    ) -> rtypes.Delete:
+    ) -> typing.Optional[rtypes.Delete]:
         """Delete a single key from the key-value store.
-
-        If a number of deleted keys is above zero, the result is interpreted as truthy,
-        otherwise as falsy.
 
         :param bytes key:
             Key in etcd to delete.
@@ -436,7 +433,8 @@ class Client:
             Whether to return the deleted key-value pair.
 
         :return:
-            A instance of :class:`~aetcd.rtypes.Delete`.
+            A instance of :class:`~aetcd.rtypes.Delete` or ``None``, if the
+            the key was not found.
 
         Usage example:
 
@@ -445,8 +443,7 @@ class Client:
             import aetcd
             client = aetcd.Client()
             await client.put(b'key', b'value')
-            result = await client.delete(b'key')
-            bool(result) is True
+            await client.delete(b'key')
         """
         delete_request = self._build_delete_request(key, prev_kv=prev_kv)
 
@@ -456,12 +453,13 @@ class Client:
             metadata=self.metadata,
         )
 
+        if delete_response.deleted < 1:
+            return None
+
         return rtypes.Delete(
             delete_response.header,
             delete_response.deleted,
-            delete_response.prev_kvs.pop()
-            if prev_kv and delete_response.deleted > 0
-            else None,
+            delete_response.prev_kvs.pop() if prev_kv else None,
         )
 
     @_handle_errors

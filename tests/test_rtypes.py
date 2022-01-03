@@ -158,8 +158,6 @@ def test_delete_type(response_header, key_value):
     assert d.header.member_id == response_header.member_id
     assert d.header.revision == response_header.revision
     assert d.header.raft_term == response_header.raft_term
-    assert d
-    assert bool(d) is True
     assert d.deleted == 1
     assert type(d.prev_kv) is aetcd.rtypes.KeyValue
     assert d.prev_kv.key == key_value.key
@@ -169,11 +167,9 @@ def test_delete_type(response_header, key_value):
     assert d.prev_kv.version == key_value.version
     assert d.prev_kv.lease == key_value.lease
 
-    d = aetcd.rtypes.Delete(response_header, 0)
+    d = aetcd.rtypes.Delete(response_header, 1)
 
-    assert not d
-    assert bool(d) is False
-    assert d.deleted == 0
+    assert d.deleted == 1
     assert d.prev_kv is None
 
 

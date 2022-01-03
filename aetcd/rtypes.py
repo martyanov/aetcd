@@ -159,13 +159,7 @@ class Put(_Slotted):
 
 
 class Delete(_Slotted):
-    """Represents the result of delete operation.
-
-    Implements ``__bool__``.
-
-    If a number of ``deleted`` keys is above zero, iterpret the result as truthy,
-    otherwise as falsy.
-    """
+    """Represents the result of delete operation."""
 
     __slots__ = [
         'header',
@@ -183,9 +177,6 @@ class Delete(_Slotted):
         #: If ``prev_kv`` flag was set in the request,
         #: the previous key-value pair will be stored in this attribute.
         self.prev_kv: typing.Optional[KeyValue] = KeyValue(prev_kv) if prev_kv else None
-
-    def __bool__(self):
-        return self.deleted > 0
 
 
 class DeleteRange:

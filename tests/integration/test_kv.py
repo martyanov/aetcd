@@ -185,16 +185,19 @@ async def test_delete_key(etcdctl, etcd):
 
     result = await etcd.delete(b'/key')
     assert result
+    assert result.deleted == 1
 
     result = await etcd.delete(b'/key')
-    assert not result
+    assert result is None
 
     result = await etcd.delete(b'unknown')
-    assert not result
+    assert result is None
 
 
 @pytest.mark.asyncio
-async def test_delete_key_has_revision(etcd):
+async def test_delete_key_has_revision(etcdctl, etcd):
+    etcdctl('put', '/key', 'value')
+
     result = await etcd.delete(b'/key')
     assert result.header.revision > 0
 
