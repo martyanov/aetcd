@@ -228,3 +228,54 @@ class DeleteRange:
             f'{self.__class__.__name__}'
             f'[header={self.header!r}, deleted={self.deleted!r}]'
         )
+
+
+class EventKind:
+    PUT = 'PUT'
+    DELETE = 'DELETE'
+
+
+class Event:
+
+    def __init__(self, kind, kv, prev_kv: typing.Optional[KeyValue]):
+        #: The kind of event. If type is a PUT, it indicates
+        #: new data has been stored to the key. If type is a DELETE,
+        #: it indicates the key was deleted.
+        self.kind: EventKind = kind
+
+        #: Holds the KeyValue for the event.
+        #: A PUT event contains current kv pair.
+        #: A PUT event with version that equals to 1 indicates the creation of a key.
+        #: A DELETE/EXPIRE event contains the deleted key with
+        #: its modification revision set to the revision of deletion.
+        self.kv: KeyValue = KeyValue(kv)
+
+        #: Holds the key-value pair before the event happend.
+        self.prev_kv: typing.Optional[KeyValue] = KeyValue(prev_kv) if prev_kv else None
+
+
+class Watch:
+    """Reperesents the result of a watch operation.
+
+    Usage example:
+
+    .. code-block:: python
+
+        w = client.watch('/key')
+        async for event in w:
+            print(event)
+    """
+
+    def __init__(
+        self,
+        iterator,
+        cancel_func,
+    ):
+        self._iterator = iterator
+        self._cancel = cancel_func
+
+    async def __aiter__(self):
+        return self._iterator
+
+    async def cancel(self):
+        return self._cancel()

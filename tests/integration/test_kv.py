@@ -4,7 +4,6 @@ import os
 import signal
 import string
 import subprocess
-import unittest.mock
 
 import pytest
 
@@ -299,8 +298,8 @@ async def test_nested_transactions(etcd):
 
 
 @pytest.mark.asyncio
-async def test_internal_exception_on_internal_error(etcd, rpc_error):
-    kv_mock = unittest.mock.MagicMock()
+async def test_internal_exception_on_internal_error(mocker, etcd, rpc_error):
+    kv_mock = mocker.MagicMock()
     kv_mock.Range.side_effect = rpc_error(aetcd.rpc.StatusCode.INTERNAL)
     etcd.kvstub = kv_mock
 
@@ -309,8 +308,8 @@ async def test_internal_exception_on_internal_error(etcd, rpc_error):
 
 
 @pytest.mark.asyncio
-async def test_connection_failure_exception_on_connection_failure(etcd, rpc_error):
-    kv_mock = unittest.mock.MagicMock()
+async def test_connection_failure_exception_on_connection_failure(mocker, etcd, rpc_error):
+    kv_mock = mocker.MagicMock()
     kv_mock.Range.side_effect = rpc_error(aetcd.rpc.StatusCode.UNAVAILABLE)
     etcd.kvstub = kv_mock
 
@@ -319,8 +318,8 @@ async def test_connection_failure_exception_on_connection_failure(etcd, rpc_erro
 
 
 @pytest.mark.asyncio
-async def test_connection_timeout_exception_on_connection_timeout(etcd, rpc_error):
-    kv_mock = unittest.mock.MagicMock()
+async def test_connection_timeout_exception_on_connection_timeout(mocker, etcd, rpc_error):
+    kv_mock = mocker.MagicMock()
     kv_mock.Range.side_effect = rpc_error(aetcd.rpc.StatusCode.DEADLINE_EXCEEDED)
     etcd.kvstub = kv_mock
 
@@ -329,8 +328,8 @@ async def test_connection_timeout_exception_on_connection_timeout(etcd, rpc_erro
 
 
 @pytest.mark.asyncio
-async def test_grpc_exception_on_unknown_code(etcd, rpc_error):
-    kv_mock = unittest.mock.MagicMock()
+async def test_grpc_exception_on_unknown_code(mocker, etcd, rpc_error):
+    kv_mock = mocker.MagicMock()
     kv_mock.Range.side_effect = rpc_error(aetcd.rpc.StatusCode.DATA_LOSS)
     etcd.kvstub = kv_mock
 

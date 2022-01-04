@@ -1,9 +1,7 @@
 import asyncio
 import base64
-import contextlib
 import threading
 import time
-import unittest.mock
 
 import pytest
 
@@ -110,7 +108,7 @@ async def test_watch_key_with_revision_compacted(etcdctl, etcd):
 
 
 @pytest.mark.asyncio
-async def test_watch_exception_during_watch(etcd, rpc_error):
+async def test_watch_exception_during_watch(mocker, etcd, rpc_error):
     async def pass_exception_to_callback(callback):
         await asyncio.sleep(1)
         ex = rpc_error(aetcd.rpc.StatusCode.UNAVAILABLE)
@@ -125,9 +123,9 @@ async def test_watch_exception_during_watch(etcd, rpc_error):
             pass_exception_to_callback(callback))
         return 1
 
-    watcher_mock = unittest.mock.MagicMock()
+    watcher_mock = mocker.AsyncMock()
     watcher_mock.add_callback = add_callback_mock
-    etcd.watcher = watcher_mock
+    etcd._watcher = watcher_mock
 
     events_iterator, cancel = await etcd.watch('foo')
 
@@ -138,19 +136,16 @@ async def test_watch_exception_during_watch(etcd, rpc_error):
     await task
 
 
-@pytest.mark.skip('broken implementation')
 @pytest.mark.asyncio
-async def test_watch_timeout_on_establishment():
-    async with aetcd.Client(timeout=3) as foo_etcd:
-        @contextlib.asynccontextmanager
-        async def slow_watch_mock(*args, **kwargs):
-            await asyncio.sleep(5)
-            yield 'foo'
+async def test_watch_timeout_on_establishment(mocker, rpc_error):
+    mocked_aiter = mocker.AsyncMock()
+    mocked_aiter.side_effect = rpc_error(aetcd.rpc.StatusCode.DEADLINE_EXCEEDED)
 
-        foo_etcd.watcher._watch_stub.Watch.open = slow_watch_mock  # noqa
+    async with aetcd.Client(timeout=3) as etcd:
+        etcd._watcher._watchstub.Watch.__aiter__ = mocked_aiter
 
-        with pytest.raises(aetcd.exceptions.WatchTimeoutError):
-            events_iterator, cancel = await foo_etcd.watch('foo')
+        with pytest.raises(aetcd.exceptions.ConnectionTimeoutError):
+            events_iterator, cancel = await etcd.watch(b'key')
             async for _ in events_iterator:
                 pass
 

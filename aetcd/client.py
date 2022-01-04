@@ -164,10 +164,11 @@ class Client:
         self.metadata = None
         self.auth_stub = None
         self.kvstub = None
-        self.watcher = None
         self.clusterstub = None
         self.leasestub = None
         self.maintenancestub = None
+
+        self._watcher = None
 
     async def connect(self) -> None:
         """Establish a connection to an etcd."""
@@ -189,16 +190,27 @@ class Client:
             self.metadata = (('token', resp.token),)
 
         self.kvstub = rpc.KVStub(self.channel)
-        self.watcher = watch.Watcher(rpc.WatchStub(self.channel), timeout=self._timeout)
         self.clusterstub = rpc.ClusterStub(self.channel)
         self.leasestub = rpc.LeaseStub(self.channel)
         self.maintenancestub = rpc.MaintenanceStub(self.channel)
 
+        # Initialize a watcher
+        self._watcher = watch.Watcher(
+            rpc.WatchStub(self.channel),
+            timeout=self._timeout,
+        )
+        await self._watcher.setup()
+
     async def close(self) -> None:
         """Close established connection and frees allocated resources."""
         if self.channel:
-            self.watcher.close()
+            # Shutdown the watcher
+            if self._watcher is not None:
+                await self._watcher.shutdown()
+
+            # Close the underlying RPC channel
             await self.channel.close()
+
             self._init_channel_attrs()
 
     async def __aenter__(self):
@@ -565,7 +577,7 @@ class Client:
             A watch_id, later it could be used for cancelling watch.
         """
         try:
-            return await self.watcher.add_callback(*args, **kwargs)
+            return await self._watcher.add_callback(*args, **kwargs)
         except asyncio.QueueEmpty:
             raise exceptions.WatchTimeoutError
 
@@ -589,22 +601,27 @@ class Client:
             async for event in events:
                 print(event)
         """
-        event_queue = asyncio.Queue()
+        events = asyncio.Queue()
+
+        async def callback(response):
+            await events.put(response)
+
         watch_id = await self.add_watch_callback(
-            key, event_queue.put,
+            key,
+            callback,
             **kwargs,
         )
         canceled = asyncio.Event()
 
         async def cancel():
             canceled.set()
-            await event_queue.put(None)
+            await events.put(None)
             await self.cancel_watch(watch_id)
 
         @_handle_errors
         async def iterator():
             while not canceled.is_set():
-                event = await event_queue.get()
+                event = await events.get()
                 if event is None:
                     canceled.set()
                 if isinstance(event, Exception):
@@ -670,7 +687,7 @@ class Client:
         :param watch_id:
             watch_id returned by ``add_watch_callback`` method.
         """
-        await self.watcher.cancel(watch_id)
+        await self._watcher.cancel(watch_id)
 
     @_handle_errors
     @_ensure_connected
@@ -801,7 +818,6 @@ class Client:
     @_handle_errors
     @_ensure_connected
     async def get_lease_info(self, lease_id, *, keys=True):
-        # only available in etcd v3.1.0 and later
         ttl_request = rpc.LeaseTimeToLiveRequest(
             ID=lease_id,
             keys=keys,
@@ -1073,7 +1089,7 @@ class Client:
         max_create_revision: typing.Optional[int] = None,
     ) -> rpc.RangeRequest:
         # TODO: Add missing request parameters: limit, revision, count_only,
-        #       mid_mod_revision, max_mod_revision, min_create_revision, max_create_revision.
+        #       mid_mod_revision, max_mod_revision, min_create_revision, max_create_revision
         range_request = rpc.RangeRequest()
 
         range_request.key = key
