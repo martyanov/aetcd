@@ -22,3 +22,4 @@
    reference/members
    reference/rtypes
    reference/utils
+   reference/watcher

@@ -11,33 +11,42 @@ from . import utils
 log = logging.getLogger(__name__)
 
 
-async def _process_callback(callback, event_or_err):
-    try:
-        await callback(event_or_err)
-    except Exception as e:
-        log.exception(f'watch callback failed with {e!r}')
+class WatchCallback:
+    """Represents the result of callback watch operation."""
+    def __init__(self, callback: typing.Callable):
+        #: A callback function that will be called when new events are emitted.
+        self.callback: typing.Callable = callback
+
+        #: ID of the watcher.
+        self.watch_id: typing.Optional[int] = None
+
+        #: Error that was raised by the underlying machinery, if any.
+        self.error: typing.Optional[Exception] = None
 
 
-class _WatchCallback:
-    def __init__(self, callback):
-        self.callback = callback
-        self.id = None
-        self.err = None
+class Watcher:
+    """Watch for events happening or that have happened.
 
+    One watcher can watch on multiple key ranges, streaming events for several
+    watches at once. The entire event history can be watched starting from the
+    last compaction revision.
 
-class Watcher(object):
+    .. note::
+        The implementation is mostly for internal use, it is advised to use
+        appropriate client watch methods.
+    """
 
     def __init__(self, watchstub, timeout=None, metadata=None):
-        self.timeout = timeout
+        self._timeout = timeout
         self._watchstub = watchstub
         self._metadata = metadata
 
         self._lock = asyncio.Lock()
         self._request_queue = asyncio.Queue(maxsize=10)
-        self._callbacks = {}
         self._request_handler = None
-        self._new_watch_cond = asyncio.Condition(lock=self._lock)
-        self._new_watch = None
+        self._callbacks = {}
+        self._new_callback = None
+        self._new_callback_ready = asyncio.Condition(lock=self._lock)
 
     def _build_watch_create_request(
         self,
@@ -78,29 +87,35 @@ class Watcher(object):
         watch_create_request = self._build_watch_create_request(*args, **kwargs)
         await self._request_queue.put(watch_create_request)
 
-    async def _enqueue_watch_cancel(self, **kwargs):
-        watch_cancel_request = self._build_watch_cancel_request(**kwargs)
+    async def _enqueue_watch_cancel(self, *args, **kwargs):
+        watch_cancel_request = self._build_watch_cancel_request(*args, **kwargs)
         await self._request_queue.put(watch_cancel_request)
 
-    async def _handle_response(self, rs):
+    async def _process_callback(self, callback, event_or_error):
+        try:
+            await callback.callback(event_or_error)
+        except Exception as e:
+            log.exception(f'watch callback failed with {e!r}')
+
+    async def _handle_response(self, response):
         async with self._lock:
-            if rs.created:
+            if response.created:
                 # If the new watch request has already expired then cancel the
                 # created watch right away.
-                if not self._new_watch:
-                    await self._enqueue_watch_cancel(watch_id=rs.watch_id)
+                if not self._new_callback:
+                    await self._enqueue_watch_cancel(watch_id=response.watch_id)
                     return
 
-                if rs.compact_revision != 0:
-                    self._new_watch.err = exceptions.RevisionCompactedError(
-                        rs.compact_revision)
+                if response.compact_revision != 0:
+                    self._new_callback.error = exceptions.RevisionCompactedError(
+                        response.compact_revision)
                     return
 
-                self._callbacks[rs.watch_id] = self._new_watch.callback
-                self._new_watch.id = rs.watch_id
-                self._new_watch_cond.notify_all()
+                self._callbacks[response.watch_id] = self._new_callback
+                self._new_callback.watch_id = response.watch_id
+                self._new_callback_ready.notify_all()
 
-            callback = self._callbacks.get(rs.watch_id)
+            callback = self._callbacks.get(response.watch_id)
 
         # Ignore leftovers from canceled watches.
         if not callback:
@@ -111,20 +126,20 @@ class Watcher(object):
         # requires api change which would break all users of this
         # module. So, raising an exception if a watcher is still
         # alive.
-        if rs.compact_revision != 0:
-            err = exceptions.RevisionCompactedError(rs.compact_revision)
-            await _process_callback(callback, err)
-            await self.cancel(rs.watch_id)
+        if response.compact_revision != 0:
+            error = exceptions.RevisionCompactedError(response.compact_revision)
+            await self._process_callback(callback, error)
+            await self.cancel(response.watch_id)
             return
 
-        for event in rs.events:
-            await _process_callback(callback, events.new_event(event))
+        for event in response.events:
+            await self._process_callback(callback, events.new_event(event))
 
-    async def _handle_stream_termination(self, err):
+    async def _handle_stream_termination(self, error):
         async with self._lock:
-            if self._new_watch:
-                self._new_watch.err = err
-                self._new_watch_cond.notify_all()
+            if self._new_callback is not None:
+                self._new_callback.error = error
+                self._new_callback_ready.notify_all()
 
             callbacks = self._callbacks
             self._callbacks = {}
@@ -134,8 +149,10 @@ class Watcher(object):
             # between them over requests in the queue
             await self._request_queue.put(None)
             self._request_queue = asyncio.Queue(maxsize=10)
+
+        # Deliver error to all subscribers
         for callback in callbacks.values():
-            await _process_callback(callback, err)
+            await self._process_callback(callback, error)
 
     async def _iter_request(self):
         while True:
@@ -166,7 +183,7 @@ class Watcher(object):
             return
 
         self._request_handler = asyncio.get_running_loop().create_task(
-            self._handle_request(self.timeout, self._metadata),
+            self._handle_request(self._timeout, self._metadata),
         )
 
     async def shutdown(self):
@@ -182,25 +199,74 @@ class Watcher(object):
 
     async def add_callback(
         self,
-        key,
-        callback,
-        range_end=None,
-        start_revision=None,
-        progress_notify=False,
-        filters=None,
-        prev_kv=False,
-    ):
+        key: bytes,
+        callback: typing.Callable,
+        range_end: typing.Optional[bytes] = None,
+        start_revision: typing.Optional[int] = None,
+        progress_notify: bool = False,
+        filters: typing.Optional[typing.List] = None,
+        prev_kv: bool = False,
+        watch_id: typing.Optional[int] = None,
+        fragment: bool = False,
+    ) -> WatchCallback:
+        """Add a callback that will be called when new events are emitted.
+
+        :param bytes key:
+            Key to watch.
+
+        :param callable callback:
+            Callback function.
+
+        :param bytes range_end:
+            End of the range [key, range_end) to watch.
+            If range_end is not given, only the key argument is watched.
+            If range_end is equal to '\0', all keys greater than or equal
+            to the key argument are watched.
+            If the range_end is one bit larger than the given key,
+            then all keys with the prefix (the given key) will be watched.
+
+        :param int start_revision:
+            Revision to watch from (inclusive).
+
+        :param bool progress_notify:
+            If set, the server will periodically send a response with
+            no events to the new watcher if there are no recent events. It is
+            useful when clients wish to recover a disconnected watcher starting
+            from a recent known revision. The server may decide how often it will
+            send notifications based on the current load.
+
+        :param list filters:
+            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
+            back to the watcher.
+
+        :param bool prev_kv:
+            If set, created watcher gets the previous key-value before the event happend.
+            If the previous KV is already compacted, nothing will be returned.
+
+        :param int watch_id:
+            If provided and non-zero, it will be assigned as ``ID`` to this watcher.
+            Since creating a watcher in etcd is not a synchronous operation,
+            this can be used ensure that ordering is correct when creating multiple
+            watchers on the same stream. Creating a watcher with an ID already in
+            use on the stream will cause an error to be returned.
+
+        :param bool fragment:
+            Enable splitting large revisions into multiple watch responses.
+
+        :return:
+            A instance of :class:`~aetcd.watch.WatchCallback`.
+        """
         async with self._lock:
             await self.setup()
 
-            # Only one create watch request can be pending at a time, so if
+            # Only one callback create request can be pending at a time, so if
             # there one already, then wait for it to complete first
-            while self._new_watch:
-                await self._new_watch_cond.wait()
+            while self._new_callback:
+                await self._new_callback_ready.wait()
 
-            # Submit a create watch request
-            new_watch = _WatchCallback(callback)
-            self._new_watch = new_watch
+            # Create callback and submit a create watch request
+            watch_callback = WatchCallback(callback)
+            self._new_callback = watch_callback
             await self._enqueue_watch_create(
                 key,
                 range_end=range_end,
@@ -208,31 +274,38 @@ class Watcher(object):
                 progress_notify=progress_notify,
                 filters=filters,
                 prev_kv=prev_kv,
+                watch_id=watch_id,
+                fragment=fragment,
             )
 
             try:
                 # Wait for the request to be completed or timeout
                 try:
-                    await asyncio.wait_for(self._new_watch_cond.wait(), self.timeout)
+                    await asyncio.wait_for(self._new_callback_ready.wait(), self._timeout)
                 except asyncio.TimeoutError:
                     raise exceptions.WatchTimeoutError
 
                 # If the request not completed yet, then raise a timeout
                 # exception
-                if new_watch.id is None and new_watch.err is None:
+                if self._new_callback.watch_id is None and self._new_callback.error is None:
                     raise exceptions.WatchTimeoutError
 
                 # Raise an exception if the watch request failed
-                if new_watch.err:
-                    raise new_watch.err
+                if self._new_callback.error is not None:
+                    raise self._new_callback.error
             finally:
                 # Wake up all coroutines waiting on add_callback call, if any
-                self._new_watch = None
-                self._new_watch_cond.notify_all()
+                self._new_callback = None
+                self._new_callback_ready.notify_all()
 
-            return new_watch.id
+            return watch_callback
 
     async def cancel(self, watch_id: int) -> None:
+        """Cancel the watcher so that no more events are emitted.
+
+        :param int watch_id:
+            The ID of the watcher to cancel.
+        """
         async with self._lock:
             callback = self._callbacks.pop(watch_id, None)
             if callback is None:

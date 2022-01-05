@@ -231,22 +231,32 @@ class DeleteRange:
 
 
 class EventKind:
+    #: Designates a ``PUT`` event.
     PUT = 'PUT'
+
+    #: Designates a ``DELETE`` event.
     DELETE = 'DELETE'
 
 
-class Event:
+class Event(_Slotted):
+    """Reperesents a watch event."""
+
+    __slots__ = [
+        'kind',
+        'kv',
+        'prev_kv',
+    ]
 
     def __init__(self, kind, kv, prev_kv: typing.Optional[KeyValue]):
-        #: The kind of event. If type is a PUT, it indicates
-        #: new data has been stored to the key. If type is a DELETE,
+        #: The kind of event. If the type is a ``PUT``, it indicates
+        #: new data has been stored to the key. If the type is a ``DELETE``,
         #: it indicates the key was deleted.
         self.kind: EventKind = kind
 
         #: Holds the KeyValue for the event.
-        #: A PUT event contains current kv pair.
-        #: A PUT event with version that equals to 1 indicates the creation of a key.
-        #: A DELETE/EXPIRE event contains the deleted key with
+        #: A ``PUT`` event contains current kv pair.
+        #: A ``PUT`` event with version that equals to 1 indicates the creation of a key.
+        #: A ``DELETE`` event contains the deleted key with
         #: its modification revision set to the revision of deletion.
         self.kv: KeyValue = KeyValue(kv)
 
@@ -257,12 +267,14 @@ class Event:
 class Watch:
     """Reperesents the result of a watch operation.
 
+    To get emitted events use as an asynchronous iterator, emitted events are
+    instances of an :class:`~aetcd.rtypes.Event`.
+
     Usage example:
 
     .. code-block:: python
 
-        w = client.watch('/key')
-        async for event in w:
+        async for event in client.watch(b'key'):
             print(event)
     """
 
@@ -275,7 +287,9 @@ class Watch:
         self._cancel = cancel_func
 
     async def __aiter__(self):
-        return self._iterator
+        async for event in self._iterator():
+            yield event
 
     async def cancel(self):
+        """Cancel the watcher so that no more events are emitted."""
         return self._cancel()

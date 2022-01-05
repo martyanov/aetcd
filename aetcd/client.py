@@ -535,88 +535,82 @@ class Client:
 
     @_handle_errors
     @_ensure_connected
-    async def status(self):
-        """Get the status of the responding member."""
-        status_request = rpc.StatusRequest()
-        status_response = await self.maintenancestub.Status(
-            status_request,
-            timeout=self._timeout,
-            metadata=self.metadata,
-        )
-
-        async for m in self.members():
-            if m.id == status_response.leader:
-                leader = m
-                break
-        else:
-            # raise exception?
-            leader = None
-
-        return Status(status_response.version,
-                      status_response.dbSize,
-                      leader,
-                      status_response.raftIndex,
-                      status_response.raftTerm)
-
-    @_handle_errors
-    @_ensure_connected
-    async def add_watch_callback(self, *args, **kwargs):
-        """Watch a key or range of keys and call a callback on every event.
-
-        If timeout was declared during the client initialization and
-        the watch cannot be created during that time the method raises
-        a ``WatchTimeoutError`` exception.
-
-        :param key:
-            Key to watch.
-
-        :param callable callback:
-            Callback function.
-
-        :return:
-            A watch_id, later it could be used for cancelling watch.
-        """
-        try:
-            return await self._watcher.add_callback(*args, **kwargs)
-        except asyncio.QueueEmpty:
-            raise exceptions.WatchTimeoutError
-
-    @_handle_errors
-    @_ensure_connected
-    async def watch(self, key, **kwargs):
+    async def watch(
+        self,
+        key: bytes,
+        range_end: typing.Optional[bytes] = None,
+        start_revision: typing.Optional[int] = None,
+        progress_notify: bool = False,
+        filters: typing.Optional[typing.List] = None,
+        prev_kv: bool = False,
+        watch_id: typing.Optional[int] = None,
+        fragment: bool = False,
+    ):
         """Watch a key.
 
-        :param key:
+        :param bytes key:
             Key to watch.
 
-        :return: tuple of ``events_iterator`` and ``cancel``.
-                 Use ``events_iterator`` to get the events of key changes
-                 and ``cancel`` to cancel the watch request.
+        :param bytes range_end:
+            End of the range [key, range_end) to watch.
+            If range_end is not given, only the key argument is watched.
+            If range_end is equal to '\0', all keys greater than or equal
+            to the key argument are watched.
+            If the range_end is one bit larger than the given key,
+            then all keys with the prefix (the given key) will be watched.
+
+        :param int start_revision:
+            Revision to watch from (inclusive).
+
+        :param bool progress_notify:
+            If set, the server will periodically send a response with
+            no events to the new watcher if there are no recent events.
+
+        :param list filters:
+            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
+            back to the watcher.
+
+        :param bool prev_kv:
+            If set, created watcher gets the previous key-value before the event happend.
+
+        :param int watch_id:
+            If provided and non-zero, it will be assigned as `ID` to this watcher.
+
+        :param bool fragment:
+            Enable splitting large revisions into multiple watch responses.
+
+        :return:
+            A instance of :class:`~aetcd.rtypes.Watch`.
 
         Usage example:
 
         .. code-block:: python
 
-            events, cancel = await client.watch(b'key')
-            async for event in events:
+            async for event in await client.watch(b'key'):
                 print(event)
         """
         events = asyncio.Queue()
 
-        async def callback(response):
+        async def response_callback(response):
             await events.put(response)
 
-        watch_id = await self.add_watch_callback(
+        watch_callback = await self._watcher.add_callback(
             key,
-            callback,
-            **kwargs,
+            response_callback,
+            range_end=range_end,
+            start_revision=start_revision,
+            progress_notify=progress_notify,
+            filters=filters,
+            prev_kv=prev_kv,
+            watch_id=watch_id,
+            fragment=fragment,
         )
         canceled = asyncio.Event()
 
         async def cancel():
             canceled.set()
             await events.put(None)
-            await self.cancel_watch(watch_id)
+            await self._watcher.cancel(watch_callback.watch_id)
 
         @_handle_errors
         async def iterator():
@@ -630,64 +624,209 @@ class Client:
                 if not canceled.is_set():
                     yield event
 
-        return iterator(), cancel
+        return rtypes.Watch(
+            iterator,
+            cancel,
+        )
 
     @_handle_errors
     @_ensure_connected
-    async def watch_prefix(self, key_prefix, **kwargs):
-        """Watches a range of keys with a prefix."""
-        kwargs['range_end'] = utils.prefix_range_end(utils.to_bytes(key_prefix))
-        return await self.watch(key_prefix, **kwargs)
+    async def watch_prefix(
+        self,
+        key_prefix: bytes,
+        range_end: typing.Optional[bytes] = None,
+        start_revision: typing.Optional[int] = None,
+        progress_notify: bool = False,
+        filters: typing.Optional[typing.List] = None,
+        prev_kv: bool = False,
+        watch_id: typing.Optional[int] = None,
+        fragment: bool = False,
+    ):
+        """Watch a range of keys with a prefix.
+
+        :param bytes key_prefix:
+            Key prefix to watch.
+
+        :param bytes range_end:
+            End of the range [key, range_end) to watch.
+            If range_end is not given, only the key argument is watched.
+            If range_end is equal to '\0', all keys greater than or equal
+            to the key argument are watched.
+            If the range_end is one bit larger than the given key,
+            then all keys with the prefix (the given key) will be watched.
+
+        :param int start_revision:
+            Revision to watch from (inclusive).
+
+        :param bool progress_notify:
+            If set, the server will periodically send a response with
+            no events to the new watcher if there are no recent events.
+
+        :param list filters:
+            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
+            back to the watcher.
+
+        :param bool prev_kv:
+            If set, created watcher gets the previous key-value before the event happend.
+
+        :param int watch_id:
+            If provided and non-zero, it will be assigned as `ID` to this watcher.
+
+        :param bool fragment:
+            Enable splitting large revisions into multiple watch responses.
+
+        :return:
+            A instance of :class:`~aetcd.rtypes.Watch`.
+        """
+        return await self.watch(
+            key_prefix,
+            range_end=utils.prefix_range_end(key_prefix),
+            start_revision=start_revision,
+            progress_notify=progress_notify,
+            filters=filters,
+            prev_kv=prev_kv,
+            watch_id=watch_id,
+            fragment=fragment,
+        )
 
     @_handle_errors
     @_ensure_connected
-    async def watch_once(self, key, timeout=None, **kwargs):
+    async def watch_once(
+        self,
+        key: bytes,
+        timeout: typing.Optional[int] = None,
+        range_end: typing.Optional[bytes] = None,
+        start_revision: typing.Optional[int] = None,
+        progress_notify: bool = False,
+        filters: typing.Optional[typing.List] = None,
+        prev_kv: bool = False,
+        watch_id: typing.Optional[int] = None,
+        fragment: bool = False,
+    ):
         """Watch a key and stops after the first event.
 
         If the timeout was specified and event didn't arrived method
         will raise ``WatchTimeoutError`` exception.
 
-        :param key:
+        :param bytes key:
             Key to watch.
 
-        :param int timeout:
-            (optional) timeout in seconds.
+        :param bytes range_end:
+            End of the range [key, range_end) to watch.
+            If range_end is not given, only the key argument is watched.
+            If range_end is equal to '\0', all keys greater than or equal
+            to the key argument are watched.
+            If the range_end is one bit larger than the given key,
+            then all keys with the prefix (the given key) will be watched.
+
+        :param int start_revision:
+            Revision to watch from (inclusive).
+
+        :param bool progress_notify:
+            If set, the server will periodically send a response with
+            no events to the new watcher if there are no recent events.
+
+        :param list filters:
+            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
+            back to the watcher.
+
+        :param bool prev_kv:
+            If set, created watcher gets the previous key-value before the event happend.
+
+        :param int watch_id:
+            If provided and non-zero, it will be assigned as `ID` to this watcher.
+
+        :param bool fragment:
+            Enable splitting large revisions into multiple watch responses.
 
         :return:
-            An instance of :class:`~aetcd.events.Event`.
+            An instance of :class:`~aetcd.rtypes.Event`.
         """
         event_queue = asyncio.Queue()
 
-        watch_id = await self.add_watch_callback(key, event_queue.put,
-                                                 **kwargs)
+        watch_callback = await self._watcher.add_callback(
+            key,
+            event_queue.put,
+            range_end=range_end,
+            start_revision=start_revision,
+            progress_notify=progress_notify,
+            filters=filters,
+            prev_kv=prev_kv,
+            watch_id=watch_id,
+            fragment=fragment,
+        )
 
         try:
             return await asyncio.wait_for(event_queue.get(), timeout)
-        except (asyncio.QueueEmpty, asyncio.TimeoutError):
+        except asyncio.TimeoutError:
             raise exceptions.WatchTimeoutError
         finally:
-            await self.cancel_watch(watch_id)
+            await self._watcher.cancel(watch_callback.watch_id)
 
     @_handle_errors
     @_ensure_connected
-    async def watch_prefix_once(self, key_prefix, timeout=None, **kwargs):
-        """Watches a range of keys with a prefix and stops after the first event.
+    async def watch_prefix_once(
+        self,
+        key_prefix: bytes,
+        timeout: typing.Optional[int] = None,
+        range_end: typing.Optional[bytes] = None,
+        start_revision: typing.Optional[int] = None,
+        progress_notify: bool = False,
+        filters: typing.Optional[typing.List] = None,
+        prev_kv: bool = False,
+        watch_id: typing.Optional[int] = None,
+        fragment: bool = False,
+    ):
+        """Watch a range of keys with a prefix and stops after the first event.
 
         If the timeout was specified and event didn't arrived method
         will raise ``WatchTimeoutError`` exception.
-        """
-        kwargs['range_end'] = utils.prefix_range_end(utils.to_bytes(key_prefix))
-        return await self.watch_once(key_prefix, timeout=timeout, **kwargs)
 
-    @_handle_errors
-    @_ensure_connected
-    async def cancel_watch(self, watch_id):
-        """Stop watching a key or range of keys.
+        :param bytes key_prefix:
+            Key prefix to watch.
 
-        :param watch_id:
-            watch_id returned by ``add_watch_callback`` method.
+        :param bytes range_end:
+            End of the range [key, range_end) to watch.
+            If range_end is not given, only the key argument is watched.
+            If range_end is equal to '\0', all keys greater than or equal
+            to the key argument are watched.
+            If the range_end is one bit larger than the given key,
+            then all keys with the prefix (the given key) will be watched.
+
+        :param int start_revision:
+            Revision to watch from (inclusive).
+
+        :param bool progress_notify:
+            If set, the server will periodically send a response with
+            no events to the new watcher if there are no recent events.
+
+        :param list filters:
+            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
+            back to the watcher.
+
+        :param bool prev_kv:
+            If set, created watcher gets the previous key-value before the event happend.
+
+        :param int watch_id:
+            If provided and non-zero, it will be assigned as `ID` to this watcher.
+
+        :param bool fragment:
+            Enable splitting large revisions into multiple watch responses.
+
+        :return:
+            An instance of :class:`~aetcd.rtypes.Event`.
         """
-        await self._watcher.cancel(watch_id)
+        return await self.watch_once(
+            key_prefix,
+            timeout=timeout,
+            range_end=utils.prefix_range_end(key_prefix),
+            start_revision=start_revision,
+            progress_notify=progress_notify,
+            filters=filters,
+            prev_kv=prev_kv,
+            watch_id=watch_id,
+            fragment=fragment,
+        )
 
     @_handle_errors
     @_ensure_connected
@@ -842,6 +981,31 @@ class Client:
             A new lock, an instance of :class:`~aetcd.locks.Lock`.
         """
         return locks.Lock(name, ttl=ttl, etcd_client=self)
+
+    @_handle_errors
+    @_ensure_connected
+    async def status(self):
+        """Get the status of the responding member."""
+        status_request = rpc.StatusRequest()
+        status_response = await self.maintenancestub.Status(
+            status_request,
+            timeout=self._timeout,
+            metadata=self.metadata,
+        )
+
+        async for m in self.members():
+            if m.id == status_response.leader:
+                leader = m
+                break
+        else:
+            # raise exception?
+            leader = None
+
+        return Status(status_response.version,
+                      status_response.dbSize,
+                      leader,
+                      status_response.raftIndex,
+                      status_response.raftTerm)
 
     @_handle_errors
     @_ensure_connected
