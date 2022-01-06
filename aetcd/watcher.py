@@ -5,7 +5,6 @@ import typing
 from . import exceptions
 from . import rpc
 from . import rtypes
-from . import utils
 
 
 log = logging.getLogger(__name__)
@@ -65,7 +64,7 @@ class Watcher:
     ):
         watch_create_request = rpc.WatchCreateRequest()
 
-        watch_create_request.key = utils.to_bytes(key)
+        watch_create_request.key = key
 
         if range_end is not None:
             watch_create_request.range_end = range_end
