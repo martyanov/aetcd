@@ -1,6 +1,8 @@
 import enum
 import typing
 
+from . import rpc
+
 
 class _Slotted:
 
@@ -252,7 +254,8 @@ class Event(_Slotted):
         #: The kind of event. If the type is a ``PUT``, it indicates
         #: new data has been stored to the key. If the type is a ``DELETE``,
         #: it indicates the key was deleted.
-        self.kind: EventKind = kind
+        self.kind: EventKind = rpc.Event.EventType.DESCRIPTOR.values_by_number[
+            kind].name
 
         #: Holds the KeyValue for the event.
         #: A ``PUT`` event contains current kv pair.

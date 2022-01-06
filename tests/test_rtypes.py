@@ -206,7 +206,7 @@ def test_delete_range_type(response_header, key_values):
 
 
 def test_event_type(key_values):
-    e = aetcd.rtypes.Event(aetcd.rtypes.EventKind.PUT, key_values[1], key_values[0])
+    e = aetcd.rtypes.Event(aetcd.rpc.Event.EventType.PUT, key_values[1], key_values[0])
 
     assert getattr(e, '__dict__', None) is None
     assert e.__slots__ == [
@@ -230,7 +230,7 @@ def test_event_type(key_values):
     assert e.prev_kv.version == key_values[0].version
     assert e.prev_kv.lease == key_values[0].lease
 
-    e = aetcd.rtypes.Event(aetcd.rtypes.EventKind.DELETE, key_values[0])
+    e = aetcd.rtypes.Event(aetcd.rpc.Event.EventType.DELETE, key_values[0])
 
     assert e.kind == aetcd.rtypes.EventKind.DELETE
     assert e.prev_kv is None

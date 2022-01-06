@@ -2,9 +2,9 @@ import asyncio
 import logging
 import typing
 
-from . import events
 from . import exceptions
 from . import rpc
+from . import rtypes
 from . import utils
 
 
@@ -20,6 +20,9 @@ class WatcherCallback:
 
         #: ID of the watcher.
         self.watch_id: typing.Optional[int] = None
+
+        #: Get the previous key-value before the event happend.
+        self.prev_kv: bool = False
 
         #: Error that was raised by the underlying machinery, if any.
         self.error: typing.Optional[Exception] = None
@@ -116,10 +119,10 @@ class Watcher:
                 self._new_callback.watch_id = response.watch_id
                 self._new_callback_ready.notify_all()
 
-            callback = self._callbacks.get(response.watch_id)
+            watcher_callback = self._callbacks.get(response.watch_id)
 
         # Ignore leftovers from canceled watches.
-        if not callback:
+        if watcher_callback is None:
             return
 
         # The watcher can be safely reused, but adding a new event
@@ -129,12 +132,19 @@ class Watcher:
         # alive.
         if response.compact_revision != 0:
             error = exceptions.RevisionCompactedError(response.compact_revision)
-            await self._process_callback(callback, error)
+            await self._process_callback(watcher_callback, error)
             await self.cancel(response.watch_id)
             return
 
         for event in response.events:
-            await self._process_callback(callback, events.new_event(event))
+            await self._process_callback(
+                watcher_callback,
+                rtypes.Event(
+                    event.type,
+                    event.kv,
+                    event.prev_kv if watcher_callback.prev_kv else None,
+                ),
+            )
 
     async def _handle_stream_termination(self, error):
         async with self._lock:
@@ -266,7 +276,9 @@ class Watcher:
                 await self._new_callback_ready.wait()
 
             # Create callback and submit a create watch request
+            # TODO: Extend with additional watch related fields
             watcher_callback = WatcherCallback(callback)
+            watcher_callback.prev_kv = prev_kv
             self._new_callback = watcher_callback
             await self._enqueue_watch_create(
                 key,

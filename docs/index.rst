@@ -15,7 +15,6 @@
    :caption: Reference
 
    reference/client
-   reference/events
    reference/exceptions
    reference/leases
    reference/locks

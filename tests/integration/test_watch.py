@@ -39,11 +39,11 @@ async def test_watch_key(etcdctl, etcd, etcdctl_put):
     change_count = 0
     w = await etcd.watch(b'key')
     async for event in w:
-        assert event.key == b'key'
-        assert event.value == aetcd.utils.to_bytes(str(change_count))
+        assert event.kv.key == b'key'
+        assert event.kv.value == aetcd.utils.to_bytes(str(change_count))
 
         # If cancel worked, we should not receive event 3
-        assert event.value != b'3'
+        assert event.kv.value != b'3'
 
         change_count += 1
         if change_count > 2:
@@ -94,11 +94,11 @@ async def test_watch_key_with_revision_compacted(etcdctl, etcd, etcdctl_put):
         w = await etcd.watch(b'key', start_revision=compacted_revision)
 
         async for event in w:
-            assert event.key == b'key'
-            assert event.value == aetcd.utils.to_bytes(str(change_count))
+            assert event.kv.key == b'key'
+            assert event.kv.value == aetcd.utils.to_bytes(str(change_count))
 
             # If cancel worked, we should not receive event 3
-            assert event.value != aetcd.utils.to_bytes('3')
+            assert event.kv.value != aetcd.utils.to_bytes('3')
 
             change_count += 1
             if change_count > 2:
@@ -129,11 +129,11 @@ async def test_watch_key_prefix(etcdctl, etcd, etcdctl_put):
     change_count = 0
     w = await etcd.watch_prefix(b'/key')
     async for event in w:
-        assert event.key == aetcd.utils.to_bytes(f'/key{change_count}')
-        assert event.value == aetcd.utils.to_bytes(str(change_count))
+        assert event.kv.key == aetcd.utils.to_bytes(f'/key{change_count}')
+        assert event.kv.value == aetcd.utils.to_bytes(str(change_count))
 
         # If cancel worked, we should not receive event 3
-        assert event.value != b'3'
+        assert event.kv.value != b'3'
 
         change_count += 1
         if change_count > 2:
