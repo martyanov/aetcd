@@ -49,8 +49,8 @@ async def etcd(etcdctl):
         stop=tenacity.stop_after_attempt(3),
     )
     def _delete_keys():
-        etcdctl('del', '--prefix', '/')
-        result = etcdctl('get', '--prefix', '/')
+        etcdctl('del', '--prefix', '')
+        result = etcdctl('get', '--prefix', '')
         assert 'kvs' not in result
 
     _delete_keys()

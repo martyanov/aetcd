@@ -1,6 +1,14 @@
 import pytest
 
+import aetcd
 import aetcd.rpc
+
+
+@pytest.fixture
+async def etcd():
+    # TODO: Rewrite the mock and related tests without side-effects
+    async with aetcd.Client() as client:
+        yield client
 
 
 @pytest.fixture

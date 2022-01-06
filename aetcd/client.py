@@ -11,7 +11,7 @@ from . import rpc
 from . import rtypes
 from . import transactions
 from . import utils
-from . import watch
+from . import watcher
 
 
 _EXCEPTIONS_BY_CODE = {
@@ -195,11 +195,10 @@ class Client:
         self.maintenancestub = rpc.MaintenanceStub(self.channel)
 
         # Initialize a watcher
-        self._watcher = watch.Watcher(
+        self._watcher = watcher.Watcher(
             rpc.WatchStub(self.channel),
             timeout=self._timeout,
         )
-        await self._watcher.setup()
 
     async def close(self) -> None:
         """Close established connection and frees allocated resources."""
@@ -554,7 +553,7 @@ class Client:
         :param bytes range_end:
             End of the range [key, range_end) to watch.
             If range_end is not given, only the key argument is watched.
-            If range_end is equal to '\0', all keys greater than or equal
+            If range_end is equal to 'x00', all keys greater than or equal
             to the key argument are watched.
             If the range_end is one bit larger than the given key,
             then all keys with the prefix (the given key) will be watched.
@@ -594,7 +593,7 @@ class Client:
         async def response_callback(response):
             await events.put(response)
 
-        watch_callback = await self._watcher.add_callback(
+        watcher_callback = await self._watcher.add_callback(
             key,
             response_callback,
             range_end=range_end,
@@ -610,7 +609,7 @@ class Client:
         async def cancel():
             canceled.set()
             await events.put(None)
-            await self._watcher.cancel(watch_callback.watch_id)
+            await self._watcher.cancel(watcher_callback.watch_id)
 
         @_handle_errors
         async def iterator():
@@ -627,6 +626,7 @@ class Client:
         return rtypes.Watch(
             iterator,
             cancel,
+            watcher_callback.watch_id,
         )
 
     @_handle_errors
@@ -650,7 +650,7 @@ class Client:
         :param bytes range_end:
             End of the range [key, range_end) to watch.
             If range_end is not given, only the key argument is watched.
-            If range_end is equal to '\0', all keys greater than or equal
+            If range_end is equal to 'x00', all keys greater than or equal
             to the key argument are watched.
             If the range_end is one bit larger than the given key,
             then all keys with the prefix (the given key) will be watched.
@@ -714,7 +714,7 @@ class Client:
         :param bytes range_end:
             End of the range [key, range_end) to watch.
             If range_end is not given, only the key argument is watched.
-            If range_end is equal to '\0', all keys greater than or equal
+            If range_end is equal to 'x00', all keys greater than or equal
             to the key argument are watched.
             If the range_end is one bit larger than the given key,
             then all keys with the prefix (the given key) will be watched.
@@ -744,7 +744,7 @@ class Client:
         """
         event_queue = asyncio.Queue()
 
-        watch_callback = await self._watcher.add_callback(
+        watcher_callback = await self._watcher.add_callback(
             key,
             event_queue.put,
             range_end=range_end,
@@ -761,7 +761,7 @@ class Client:
         except asyncio.TimeoutError:
             raise exceptions.WatchTimeoutError
         finally:
-            await self._watcher.cancel(watch_callback.watch_id)
+            await self._watcher.cancel(watcher_callback.watch_id)
 
     @_handle_errors
     @_ensure_connected
@@ -788,7 +788,7 @@ class Client:
         :param bytes range_end:
             End of the range [key, range_end) to watch.
             If range_end is not given, only the key argument is watched.
-            If range_end is equal to '\0', all keys greater than or equal
+            If range_end is equal to 'x00', all keys greater than or equal
             to the key argument are watched.
             If the range_end is one bit larger than the given key,
             then all keys with the prefix (the given key) will be watched.

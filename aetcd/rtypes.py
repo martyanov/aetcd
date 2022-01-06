@@ -1,3 +1,4 @@
+import enum
 import typing
 
 
@@ -230,7 +231,7 @@ class DeleteRange:
         )
 
 
-class EventKind:
+class EventKind(str, enum.Enum):
     #: Designates a ``PUT`` event.
     PUT = 'PUT'
 
@@ -247,7 +248,7 @@ class Event(_Slotted):
         'prev_kv',
     ]
 
-    def __init__(self, kind, kv, prev_kv: typing.Optional[KeyValue]):
+    def __init__(self, kind, kv, prev_kv=None):
         #: The kind of event. If the type is a ``PUT``, it indicates
         #: new data has been stored to the key. If the type is a ``DELETE``,
         #: it indicates the key was deleted.
@@ -282,9 +283,13 @@ class Watch:
         self,
         iterator,
         cancel_func,
+        watch_id,
     ):
         self._iterator = iterator
         self._cancel = cancel_func
+
+        #: The ``ID`` of the watcher that emits the events.
+        self.watch_id: int = watch_id
 
     async def __aiter__(self):
         async for event in self._iterator():
@@ -292,4 +297,7 @@ class Watch:
 
     async def cancel(self):
         """Cancel the watcher so that no more events are emitted."""
-        return self._cancel()
+        await self._cancel()
+
+    def __repr__(self):
+        return f'Watch[watch_id={self.watch_id!r}]'

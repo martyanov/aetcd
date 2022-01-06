@@ -1,3 +1,5 @@
+import pytest
+
 import aetcd.rtypes
 
 
@@ -201,3 +203,59 @@ def test_delete_range_type(response_header, key_values):
     assert bool(dr) is False
     assert len(dr) == dr.deleted == 0
     assert dr.prev_kvs == []
+
+
+def test_event_type(key_values):
+    e = aetcd.rtypes.Event(aetcd.rtypes.EventKind.PUT, key_values[1], key_values[0])
+
+    assert getattr(e, '__dict__', None) is None
+    assert e.__slots__ == [
+        'kind',
+        'kv',
+        'prev_kv',
+    ]
+    assert e.kind == aetcd.rtypes.EventKind.PUT
+    assert type(e.kv) is aetcd.rtypes.KeyValue
+    assert e.kv.key == key_values[1].key
+    assert e.kv.value == key_values[1].value
+    assert e.kv.create_revision == key_values[1].create_revision
+    assert e.kv.mod_revision == key_values[1].mod_revision
+    assert e.kv.version == key_values[1].version
+    assert e.kv.lease == key_values[1].lease
+    assert type(e.prev_kv) is aetcd.rtypes.KeyValue
+    assert e.prev_kv.key == key_values[0].key
+    assert e.prev_kv.value == key_values[0].value
+    assert e.prev_kv.create_revision == key_values[0].create_revision
+    assert e.prev_kv.mod_revision == key_values[0].mod_revision
+    assert e.prev_kv.version == key_values[0].version
+    assert e.prev_kv.lease == key_values[0].lease
+
+    e = aetcd.rtypes.Event(aetcd.rtypes.EventKind.DELETE, key_values[0])
+
+    assert e.kind == aetcd.rtypes.EventKind.DELETE
+    assert e.prev_kv is None
+
+
+@pytest.mark.asyncio
+async def test_watch_type(mocker):
+    async def iterator():
+        yield 1
+        yield 2
+        yield 3
+
+    cancel_func = mocker.AsyncMock()
+
+    w = aetcd.rtypes.Watch(iterator, cancel_func, 1)
+
+    evs = []
+    async for e in w:
+        evs.append(e)
+
+    assert evs == [1, 2, 3]
+
+    await w.cancel()
+
+    cancel_func.assert_called_once()
+
+    assert w.watch_id == 1
+    assert str(w) == repr(w) == 'Watch[watch_id=1]'

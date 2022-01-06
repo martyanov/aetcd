@@ -11,8 +11,9 @@ from . import utils
 log = logging.getLogger(__name__)
 
 
-class WatchCallback:
+class WatcherCallback:
     """Represents the result of callback watch operation."""
+
     def __init__(self, callback: typing.Callable):
         #: A callback function that will be called when new events are emitted.
         self.callback: typing.Callable = callback
@@ -208,7 +209,7 @@ class Watcher:
         prev_kv: bool = False,
         watch_id: typing.Optional[int] = None,
         fragment: bool = False,
-    ) -> WatchCallback:
+    ) -> WatcherCallback:
         """Add a callback that will be called when new events are emitted.
 
         :param bytes key:
@@ -220,7 +221,7 @@ class Watcher:
         :param bytes range_end:
             End of the range [key, range_end) to watch.
             If range_end is not given, only the key argument is watched.
-            If range_end is equal to '\0', all keys greater than or equal
+            If range_end is equal to 'x00', all keys greater than or equal
             to the key argument are watched.
             If the range_end is one bit larger than the given key,
             then all keys with the prefix (the given key) will be watched.
@@ -254,7 +255,7 @@ class Watcher:
             Enable splitting large revisions into multiple watch responses.
 
         :return:
-            A instance of :class:`~aetcd.watch.WatchCallback`.
+            A instance of :class:`~aetcd.watch.WatcherCallback`.
         """
         async with self._lock:
             await self.setup()
@@ -265,8 +266,8 @@ class Watcher:
                 await self._new_callback_ready.wait()
 
             # Create callback and submit a create watch request
-            watch_callback = WatchCallback(callback)
-            self._new_callback = watch_callback
+            watcher_callback = WatcherCallback(callback)
+            self._new_callback = watcher_callback
             await self._enqueue_watch_create(
                 key,
                 range_end=range_end,
@@ -298,7 +299,7 @@ class Watcher:
                 self._new_callback = None
                 self._new_callback_ready.notify_all()
 
-            return watch_callback
+            return watcher_callback
 
     async def cancel(self, watch_id: int) -> None:
         """Cancel the watcher so that no more events are emitted.

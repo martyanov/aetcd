@@ -21,6 +21,8 @@ from .rtypes import KeyValue
 from .rtypes import Put
 from .rtypes import ResponseHeader
 from .rtypes import Watch
+from .watcher import Watcher
+from .watcher import WatcherCallback
 
 
 __all__ = (
@@ -49,4 +51,6 @@ __all__ = (
     'Transactions',
     'Watch',
     'WatchTimeoutError',
+    'Watcher',
+    'WatcherCallback',
 )
