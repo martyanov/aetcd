@@ -14,36 +14,20 @@ from . import utils
 from . import watcher
 
 
-_EXCEPTIONS_BY_CODE = {
-    rpc.StatusCode.DEADLINE_EXCEEDED: exceptions.ConnectionTimeoutError,
-    rpc.StatusCode.FAILED_PRECONDITION: exceptions.PreconditionFailedError,
-    rpc.StatusCode.INTERNAL: exceptions.InternalServerError,
-    rpc.StatusCode.UNAVAILABLE: exceptions.ConnectionFailedError,
-    rpc.StatusCode.INVALID_ARGUMENT: exceptions.InvalidArgumentError,
-}
-
-
-def _translate_exception(error: rpc.AioRpcError):
-    exc = _EXCEPTIONS_BY_CODE.get(error.code())
-    if exc is not None:
-        raise exc(error.details()) from error
-    raise exceptions.ClientError(error)
-
-
 def _handle_errors(f):
     if inspect.iscoroutinefunction(f):
         async def handler(*args, **kwargs):
             try:
                 return await f(*args, **kwargs)
             except rpc.AioRpcError as e:
-                _translate_exception(e)
+                exceptions._handle_exception(e)
     elif inspect.isasyncgenfunction(f):
         async def handler(*args, **kwargs):
             try:
                 async for data in f(*args, **kwargs):
                     yield data
             except rpc.AioRpcError as e:
-                _translate_exception(e)
+                exceptions._handle_exception(e)
     else:
         raise RuntimeError(
             f'provided function {f.__name__!r} is neither a coroutine nor an async generator')

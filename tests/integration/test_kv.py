@@ -303,7 +303,7 @@ async def test_internal_exception_on_internal_error(mocker, etcd, rpc_error):
     kv_mock.Range.side_effect = rpc_error(aetcd.rpc.StatusCode.INTERNAL)
     etcd.kvstub = kv_mock
 
-    with pytest.raises(aetcd.exceptions.InternalServerError):
+    with pytest.raises(aetcd.exceptions.InternalError):
         await etcd.get(b'key')
 
 

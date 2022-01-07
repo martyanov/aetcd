@@ -147,6 +147,8 @@ class Watcher:
             )
 
     async def _terminate_stream(self, error):
+        # TODO: Refactor this machinery to handle each case separately,
+        #       instead of one-for-all cases solution
         async with self._lock:
             if self._new_callback is not None:
                 self._new_callback.error = error

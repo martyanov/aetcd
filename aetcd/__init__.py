@@ -4,7 +4,7 @@ from .client import Transactions
 from .exceptions import ClientError
 from .exceptions import ConnectionFailedError
 from .exceptions import ConnectionTimeoutError
-from .exceptions import InternalServerError
+from .exceptions import InternalError
 from .exceptions import PreconditionFailedError
 from .exceptions import RevisionCompactedError
 from .exceptions import WatchTimeoutError
@@ -38,7 +38,7 @@ __all__ = (
     'EventKind',
     'Get',
     'GetRange',
-    'InternalServerError',
+    'InternalError',
     'KeyValue',
     'Lease',
     'Lock',
