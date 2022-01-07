@@ -47,6 +47,7 @@ class Watcher:
         self._lock = asyncio.Lock()
         self._request_queue = asyncio.Queue(maxsize=10)
         self._request_handler = None
+        self._request_handler_lock = asyncio.Lock()
         self._callbacks = {}
         self._new_callback = None
         self._new_callback_ready = asyncio.Condition(lock=self._lock)
@@ -145,7 +146,7 @@ class Watcher:
                 ),
             )
 
-    async def _handle_stream_termination(self, error):
+    async def _terminate_stream(self, error):
         async with self._lock:
             if self._new_callback is not None:
                 self._new_callback.error = error
@@ -154,7 +155,7 @@ class Watcher:
             callbacks = self._callbacks
             self._callbacks = {}
 
-            # Rotate request queue. This way we can terminate one gRPC
+            # Rotate request queue. This way we can terminate one RPC
             # stream and initiate another one whilst avoiding a race
             # between them over requests in the queue
             await self._request_queue.put(None)
@@ -163,6 +164,17 @@ class Watcher:
         # Deliver error to all subscribers
         for callback in callbacks.values():
             await self._process_callback(callback, error)
+
+        # Shutdown the watcher request handler
+        async with self._request_handler_lock:
+            if self._request_handler is not None:
+                self._request_handler.cancel()
+                try:
+                    await self._request_handler
+                except asyncio.CancelledError:
+                    pass
+
+                self._request_handler = None
 
     async def _iter_request(self):
         while True:
@@ -185,27 +197,21 @@ class Watcher:
 
                 await self._handle_response(response)
         except Exception as e:
-            await self._handle_stream_termination(e)
+            await self._terminate_stream(e)
 
     async def setup(self):
         """Set up the watcher."""
-        if self._request_handler is not None:
-            return
+        async with self._request_handler_lock:
+            if self._request_handler is not None:
+                return
 
-        self._request_handler = asyncio.get_running_loop().create_task(
-            self._handle_request(self._timeout, self._metadata),
-        )
+            self._request_handler = asyncio.get_running_loop().create_task(
+                self._handle_request(self._timeout, self._metadata),
+            )
 
     async def shutdown(self):
         """Shutdown the watcher."""
-        if self._request_handler:
-            self._request_handler.cancel()
-            try:
-                await self._request_handler
-            except asyncio.CancelledError:
-                pass
-
-        self._request_handler = None
+        await self._terminate_stream(None)
 
     async def add_callback(
         self,
