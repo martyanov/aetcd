@@ -535,12 +535,12 @@ class Client:
             Key to watch.
 
         :param bytes range_end:
-            End of the range [key, range_end) to watch.
-            If range_end is not given, only the key argument is watched.
-            If range_end is equal to 'x00', all keys greater than or equal
-            to the key argument are watched.
-            If the range_end is one bit larger than the given key,
-            then all keys with the prefix (the given key) will be watched.
+            End of the range ``[key, range_end)`` to watch.
+            If ``range_end`` is not given, only the ``key`` argument is watched.
+            If ``range_end`` is equal to ``x00``, all keys greater than or equal
+            to the ``key`` argument are watched.
+            If the ``range_end`` is one bit larger than the given ``key``,
+            then all keys with the prefix (the given ``key``) will be watched.
 
         :param int start_revision:
             Revision to watch from (inclusive).
@@ -555,9 +555,10 @@ class Client:
 
         :param bool prev_kv:
             If set, created watcher gets the previous key-value before the event happend.
+            If the previous key-value is already compacted, nothing will be returned.
 
         :param int watch_id:
-            If provided and non-zero, it will be assigned as `ID` to this watcher.
+            If provided and non-zero, it will be assigned as ID to this watcher.
 
         :param bool fragment:
             Enable splitting large revisions into multiple watch responses.
@@ -632,12 +633,12 @@ class Client:
             Key prefix to watch.
 
         :param bytes range_end:
-            End of the range [key, range_end) to watch.
-            If range_end is not given, only the key argument is watched.
-            If range_end is equal to 'x00', all keys greater than or equal
-            to the key argument are watched.
-            If the range_end is one bit larger than the given key,
-            then all keys with the prefix (the given key) will be watched.
+            End of the range ``[key, range_end)`` to watch.
+            If ``range_end`` is not given, only the ``key`` argument is watched.
+            If ``range_end`` is equal to ``x00``, all keys greater than or equal
+            to the ``key`` argument are watched.
+            If the ``range_end`` is one bit larger than the given ``key``,
+            then all keys with the prefix (the given ``key``) will be watched.
 
         :param int start_revision:
             Revision to watch from (inclusive).
@@ -652,9 +653,10 @@ class Client:
 
         :param bool prev_kv:
             If set, created watcher gets the previous key-value before the event happend.
+            If the previous key-value is already compacted, nothing will be returned.
 
         :param int watch_id:
-            If provided and non-zero, it will be assigned as `ID` to this watcher.
+            If provided and non-zero, it will be assigned as ID to this watcher.
 
         :param bool fragment:
             Enable splitting large revisions into multiple watch responses.
@@ -696,12 +698,12 @@ class Client:
             Key to watch.
 
         :param bytes range_end:
-            End of the range [key, range_end) to watch.
-            If range_end is not given, only the key argument is watched.
-            If range_end is equal to 'x00', all keys greater than or equal
-            to the key argument are watched.
-            If the range_end is one bit larger than the given key,
-            then all keys with the prefix (the given key) will be watched.
+            End of the range ``[key, range_end)`` to watch.
+            If ``range_end`` is not given, only the ``key`` argument is watched.
+            If ``range_end`` is equal to ``x00``, all keys greater than or equal
+            to the ``key`` argument are watched.
+            If the ``range_end`` is one bit larger than the given ``key``,
+            then all keys with the prefix (the given ``key``) will be watched.
 
         :param int start_revision:
             Revision to watch from (inclusive).
@@ -716,9 +718,10 @@ class Client:
 
         :param bool prev_kv:
             If set, created watcher gets the previous key-value before the event happend.
+            If the previous key-value is already compacted, nothing will be returned.
 
         :param int watch_id:
-            If provided and non-zero, it will be assigned as `ID` to this watcher.
+            If provided and non-zero, it will be assigned as ID to this watcher.
 
         :param bool fragment:
             Enable splitting large revisions into multiple watch responses.
@@ -770,12 +773,12 @@ class Client:
             Key prefix to watch.
 
         :param bytes range_end:
-            End of the range [key, range_end) to watch.
-            If range_end is not given, only the key argument is watched.
-            If range_end is equal to 'x00', all keys greater than or equal
-            to the key argument are watched.
-            If the range_end is one bit larger than the given key,
-            then all keys with the prefix (the given key) will be watched.
+            End of the range ``[key, range_end)`` to watch.
+            If ``range_end`` is not given, only the ``key`` argument is watched.
+            If ``range_end`` is equal to ``x00``, all keys greater than or equal
+            to the ``key`` argument are watched.
+            If the ``range_end`` is one bit larger than the given ``key``,
+            then all keys with the prefix (the given ``key``) will be watched.
 
         :param int start_revision:
             Revision to watch from (inclusive).
@@ -790,9 +793,10 @@ class Client:
 
         :param bool prev_kv:
             If set, created watcher gets the previous key-value before the event happend.
+            If the previous key-value is already compacted, nothing will be returned.
 
         :param int watch_id:
-            If provided and non-zero, it will be assigned as `ID` to this watcher.
+            If provided and non-zero, it will be assigned as ID to this watcher.
 
         :param bool fragment:
             Enable splitting large revisions into multiple watch responses.

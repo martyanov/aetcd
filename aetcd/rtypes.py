@@ -257,8 +257,8 @@ class Event(_Slotted):
         self.kind: EventKind = rpc.Event.EventType.DESCRIPTOR.values_by_number[
             kind].name
 
-        #: Holds the KeyValue for the event.
-        #: A ``PUT`` event contains current kv pair.
+        #: Holds the key-value for the event.
+        #: A ``PUT`` event contains current key-value pair.
         #: A ``PUT`` event with version that equals to 1 indicates the creation of a key.
         #: A ``DELETE`` event contains the deleted key with
         #: its modification revision set to the revision of deletion.
@@ -291,7 +291,7 @@ class Watch:
         self._iterator = iterator
         self._cancel = cancel_func
 
-        #: The ``ID`` of the watcher that emits the events.
+        #: The ID of the watcher that emits the events.
         self.watch_id: int = watch_id
 
     async def __aiter__(self):
