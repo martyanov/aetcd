@@ -203,7 +203,6 @@ class Watcher:
         try:
             async for response in self._watchstub.Watch(
                 self._iter_request(),
-                timeout=timeout,
                 metadata=metadata,
             ):
                 if response is None:
