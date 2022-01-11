@@ -1,3 +1,4 @@
+import contextlib
 import json
 import os
 import subprocess
@@ -28,7 +29,7 @@ def etcdctl():
 
 
 @pytest.fixture
-async def etcd(etcdctl):
+async def etcd_client_ctx(etcdctl):
     host = 'localhost'
     port = 2379
 
@@ -38,12 +39,23 @@ async def etcd(etcdctl):
         host = url.hostname
         port = url.port
 
-    async with aetcd.Client(
-        host=host,
-        port=port,
-    ) as client:
-        yield client
+    @contextlib.asynccontextmanager
+    async def _etcd_client_ctx(**client_kws):
+        async with aetcd.Client(
+            host=host,
+            port=port,
+            **client_kws,
+        ) as client:
+            yield client
 
-    etcdctl('del', '--prefix', '')
-    result = etcdctl('get', '--prefix', '')
-    assert 'kvs' not in result
+        etcdctl('del', '--prefix', '')
+        result = etcdctl('get', '--prefix', '')
+        assert 'kvs' not in result
+
+    return _etcd_client_ctx
+
+
+@pytest.fixture
+async def etcd(etcd_client_ctx):
+    async with etcd_client_ctx() as etcd:
+        yield etcd

@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import threading
 import time
@@ -219,3 +220,15 @@ async def test_watch_key_prefix_once_sequential(etcd):
 
     with pytest.raises(aetcd.exceptions.WatchTimeoutError):
         await etcd.watch_prefix_once(b'/key', 1)
+
+
+@pytest.mark.asyncio
+async def test_watch_ignores_timeout(etcd_client_ctx, etcdctl_put):
+    async with etcd_client_ctx(timeout=1) as etcd:
+        w = await etcd.watch(b'key')
+        await asyncio.sleep(2)
+        etcdctl_put('key', '1')
+        async for event in w:
+            assert event.kv.value == b'1'
+            break
+        await w.cancel()
