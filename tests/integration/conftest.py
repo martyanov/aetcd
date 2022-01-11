@@ -4,7 +4,6 @@ import subprocess
 import urllib.parse
 
 import pytest
-import tenacity
 
 import aetcd
 
@@ -30,9 +29,10 @@ def etcdctl():
 
 @pytest.fixture
 async def etcd(etcdctl):
-    endpoint = os.environ.get('TEST_ETCD_HTTP_URL')
     host = 'localhost'
     port = 2379
+
+    endpoint = os.environ.get('TEST_ETCD_HTTP_URL')
     if endpoint:
         url = urllib.parse.urlparse(endpoint)
         host = url.hostname
@@ -44,13 +44,6 @@ async def etcd(etcdctl):
     ) as client:
         yield client
 
-    @tenacity.retry(
-        wait=tenacity.wait_fixed(2),
-        stop=tenacity.stop_after_attempt(3),
-    )
-    def _delete_keys():
-        etcdctl('del', '--prefix', '')
-        result = etcdctl('get', '--prefix', '')
-        assert 'kvs' not in result
-
-    _delete_keys()
+    etcdctl('del', '--prefix', '')
+    result = etcdctl('get', '--prefix', '')
+    assert 'kvs' not in result

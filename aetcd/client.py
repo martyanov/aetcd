@@ -955,11 +955,11 @@ class Client:
             metadata=self.metadata,
         )
 
-    def lock(self, name, ttl=60):
+    def lock(self, key: bytes, ttl: int = 60):
         """Create a new lock.
 
-        :param name:
-            Name of the lock.
+        :param bytes key:
+            The key under which the lock will be stored.
 
         :param int ttl:
             Length of time for the lock to live for in seconds. The
@@ -968,7 +968,7 @@ class Client:
         :return:
             A new lock, an instance of :class:`~aetcd.locks.Lock`.
         """
-        return locks.Lock(name, ttl=ttl, etcd_client=self)
+        return locks.Lock(self, key, ttl)
 
     @_handle_errors
     @_ensure_connected

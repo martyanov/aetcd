@@ -1,136 +1,137 @@
+import time
 import uuid
 
-import tenacity
+from . import exceptions
+from . import rtypes
 
 
-# from . import exceptions
-
-
-lock_prefix = b'/locks/'
-
-
-class Lock(object):
-    """
-    A distributed lock.
+class Lock:
+    """A distributed lock.
 
     This can be used as a context manager, with the lock being acquired and
     released as you would expect:
 
     .. code-block:: python
 
-        etcd = etcd3.client()
+        client = aetcd.Client()
 
-        # create a lock that expires after 20 seconds
-        with etcd.lock(b'key', ttl=20) as lock:
+        # Create a lock that expires after 20 seconds
+        with client.lock(b'key', ttl=20) as lock:
             # do something that requires the lock
             print(lock.is_acquired())
 
             # refresh the timeout on the lease
             lock.refresh()
 
-    :param name: name of the lock
-    :type name: string or bytes
-    :param ttl: length of time for the lock to live for in seconds. The lock
-                will be released after this time elapses, unless refreshed
-    :type ttl: int
+    :param aetcd.client.Client client:
+        An instance of :class:`~aetcd.client.Client`
+
+    :param bytes key:
+        The key under which the lock will be stored.
+
+    :param int ttl:
+        Length of time for the lock to live for in seconds. The lock
+        will be released after this time elapses, unless refreshed.
     """
 
-    def __init__(self, name, ttl=60,
-                 etcd_client=None):
-        self.name = name
+    def __init__(self, client, key: bytes, ttl: int):
+        self._client = client
+        self.key = key
         self.ttl = ttl
-        if etcd_client is not None:
-            self.etcd_client = etcd_client
-
-        self.key = lock_prefix + self.name
         self.lease = None
-        # store uuid as bytes, since it avoids having to decode each time we
+        # Store uuid as bytes, since it avoids having to decode each time we
         # need to compare
         self.uuid = uuid.uuid1().bytes
 
-    async def acquire(self, timeout=10):
-        """Acquire the lock.
+    async def _try_acquire(self):
+        self.lease = await self._client.lease(self.ttl)
 
-        :params timeout: Maximum time to wait before returning. `None` means
-                         forever, any other value equal or greater than 0 is
-                         the number of seconds.
-        :returns: True if the lock has been acquired, False otherwise.
-
-        """
-        stop = (
-            tenacity.stop_never
-            if timeout is None else tenacity.stop_after_delay(timeout)
+        success, metadata = await self._client.transaction(
+            compare=[
+                self._client.transactions.create(self.key) == 0,
+            ],
+            success=[
+                self._client.transactions.put(
+                    self.key,
+                    self.uuid,
+                    lease=self.lease,
+                ),
+            ],
+            failure=[
+                self._client.transactions.get(self.key),
+            ],
         )
 
-        def wait(retry_state):
-            # if timeout is None:
-            #     remaining_timeout = None
-            # else:
-            #     remaining_timeout = max(timeout - retry_state.start_time, 0)
-            # TODO(jd): Wait for a DELETE event to happen: that'd mean the lock
-            # has been released, rather than retrying on PUT events too
-            # try:
-            #     await self.etcd_client.watch_once(self.key,
-            #                                       remaining_timeout)
-            # except exceptions.WatchTimeoutError:
-            #     pass
-            return 0
+        if success is True:
+            self.revision = metadata[0].response_put.header.revision
+            return True
 
-        @tenacity.retry(retry=tenacity.retry_never,
-                        stop=stop,
-                        wait=wait)
-        async def _acquire():
-            # TODO: save the created revision so we can check it later to make
-            # sure we still have the lock
+        self.revision = metadata[0][0][1].mod_revision
+        self.lease = None
 
-            self.lease = await self.etcd_client.lease(self.ttl)
+        return False
 
-            success, _ = await self.etcd_client.transaction(
-                compare=[
-                    self.etcd_client.transactions.create(self.key) == 0,
-                ],
-                success=[
-                    self.etcd_client.transactions.put(
-                        self.key, self.uuid,
-                        lease=self.lease,
-                    ),
-                ],
-                failure=[
-                    self.etcd_client.transactions.get(self.key),
-                ],
-            )
-            if success is True:
-                return True
-            self.lease = None
-            raise tenacity.TryAgain
-
+    async def _wait_for_delete_event(self, timeout: int):
         try:
-            return await _acquire()
-        except tenacity.RetryError:
-            return False
+            await self._client.watch_once(
+                self.key,
+                timeout=timeout,
+                start_revision=self.revision + 1,
+                kind=rtypes.EventKind.DELETE,
+            )
+        except exceptions.WatchTimeoutError:
+            return
+
+    async def acquire(self, timeout: int = 10):
+        """Acquire the lock.
+
+        :param int timeout:
+            Maximum time to wait before returning. ``None`` means
+            forever, any other value equal or greater than 0 is
+            the number of seconds.
+
+        :return:
+            ``True`` if the lock has been acquired, ``False`` otherwise.
+        """
+        deadline = None
+        if timeout is not None:
+            deadline = time.time() + timeout
+
+        while True:
+            if await self._try_acquire():
+                return True
+
+            if deadline is not None:
+                remaining_timeout = max(deadline - time.time(), 0)
+                if remaining_timeout == 0:
+                    return False
+            else:
+                remaining_timeout = None
+
+            await self._wait_for_delete_event(remaining_timeout)
 
     async def release(self):
         """Release the lock."""
-        success, _ = await self.etcd_client.transaction(
+        success, _ = await self._client.transaction(
             compare=[
-                self.etcd_client.transactions.value(self.key) == self.uuid,
+                self._client.transactions.value(self.key) == self.uuid,
             ],
-            success=[self.etcd_client.transactions.delete(self.key)],
+            success=[self._client.transactions.delete(self.key)],
             failure=[],
         )
+
         return success
 
     async def refresh(self):
         """Refresh the time to live on this lock."""
         if self.lease is not None:
             return await self.lease.refresh()
-        else:
-            raise ValueError('No lease associated with this lock - have you '
-                             'acquired the lock yet?')
+
+        raise ValueError(f'no lease associated with this lock: {self.key!r}')
 
     async def is_acquired(self):
         """Check if this lock is currently acquired."""
-        result = await self.etcd_client.get(self.key)
+        result = await self._client.get(self.key)
 
         if result is None:
             return False
