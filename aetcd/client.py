@@ -524,7 +524,7 @@ class Client:
         range_end: typing.Optional[bytes] = None,
         start_revision: typing.Optional[int] = None,
         progress_notify: bool = False,
-        filters: typing.Optional[typing.List] = None,
+        kind: typing.Optional[rtypes.EventKind] = None,
         prev_kv: bool = False,
         watch_id: typing.Optional[int] = None,
         fragment: bool = False,
@@ -549,9 +549,9 @@ class Client:
             If set, the server will periodically send a response with
             no events to the new watcher if there are no recent events.
 
-        :param list filters:
-            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
-            back to the watcher.
+        :param aetcd.rtypes.EventKind kind:
+            Filter the events by :class:`~aetcd.rtypes.EventKind`,
+            at server side before it sends back to the watcher.
 
         :param bool prev_kv:
             If set, created watcher gets the previous key-value before the event happend.
@@ -584,7 +584,7 @@ class Client:
             range_end=range_end,
             start_revision=start_revision,
             progress_notify=progress_notify,
-            filters=filters,
+            kind=kind,
             prev_kv=prev_kv,
             watch_id=watch_id,
             fragment=fragment,
@@ -622,7 +622,7 @@ class Client:
         range_end: typing.Optional[bytes] = None,
         start_revision: typing.Optional[int] = None,
         progress_notify: bool = False,
-        filters: typing.Optional[typing.List] = None,
+        kind: typing.Optional[rtypes.EventKind] = None,
         prev_kv: bool = False,
         watch_id: typing.Optional[int] = None,
         fragment: bool = False,
@@ -647,9 +647,9 @@ class Client:
             If set, the server will periodically send a response with
             no events to the new watcher if there are no recent events.
 
-        :param list filters:
-            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
-            back to the watcher.
+        :param aetcd.rtypes.EventKind kind:
+            Filter the events by :class:`~aetcd.rtypes.EventKind`,
+            at server side before it sends back to the watcher.
 
         :param bool prev_kv:
             If set, created watcher gets the previous key-value before the event happend.
@@ -669,7 +669,7 @@ class Client:
             range_end=utils.prefix_range_end(key_prefix),
             start_revision=start_revision,
             progress_notify=progress_notify,
-            filters=filters,
+            kind=kind,
             prev_kv=prev_kv,
             watch_id=watch_id,
             fragment=fragment,
@@ -684,7 +684,7 @@ class Client:
         range_end: typing.Optional[bytes] = None,
         start_revision: typing.Optional[int] = None,
         progress_notify: bool = False,
-        filters: typing.Optional[typing.List] = None,
+        kind: typing.Optional[rtypes.EventKind] = None,
         prev_kv: bool = False,
         watch_id: typing.Optional[int] = None,
         fragment: bool = False,
@@ -712,9 +712,9 @@ class Client:
             If set, the server will periodically send a response with
             no events to the new watcher if there are no recent events.
 
-        :param list filters:
-            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
-            back to the watcher.
+        :param aetcd.rtypes.EventKind kind:
+            Filter the events by :class:`~aetcd.rtypes.EventKind`,
+            at server side before it sends back to the watcher.
 
         :param bool prev_kv:
             If set, created watcher gets the previous key-value before the event happend.
@@ -737,7 +737,7 @@ class Client:
             range_end=range_end,
             start_revision=start_revision,
             progress_notify=progress_notify,
-            filters=filters,
+            kind=kind,
             prev_kv=prev_kv,
             watch_id=watch_id,
             fragment=fragment,
@@ -759,7 +759,7 @@ class Client:
         range_end: typing.Optional[bytes] = None,
         start_revision: typing.Optional[int] = None,
         progress_notify: bool = False,
-        filters: typing.Optional[typing.List] = None,
+        kind: typing.Optional[rtypes.EventKind] = None,
         prev_kv: bool = False,
         watch_id: typing.Optional[int] = None,
         fragment: bool = False,
@@ -787,9 +787,9 @@ class Client:
             If set, the server will periodically send a response with
             no events to the new watcher if there are no recent events.
 
-        :param list filters:
-            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
-            back to the watcher.
+        :param aetcd.rtypes.EventKind kind:
+            Filter the events by :class:`~aetcd.rtypes.EventKind`,
+            at server side before it sends back to the watcher.
 
         :param bool prev_kv:
             If set, created watcher gets the previous key-value before the event happend.
@@ -810,7 +810,7 @@ class Client:
             range_end=utils.prefix_range_end(key_prefix),
             start_revision=start_revision,
             progress_notify=progress_notify,
-            filters=filters,
+            kind=kind,
             prev_kv=prev_kv,
             watch_id=watch_id,
             fragment=fragment,

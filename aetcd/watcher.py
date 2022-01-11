@@ -58,7 +58,7 @@ class Watcher:
         range_end: typing.Optional[bytes] = None,
         start_revision: typing.Optional[int] = None,
         progress_notify: bool = False,
-        filters: typing.Optional[typing.List] = None,
+        kind: typing.Optional[rtypes.EventKind] = None,
         prev_kv: bool = False,
         watch_id: typing.Optional[int] = None,
         fragment: bool = False,
@@ -75,8 +75,20 @@ class Watcher:
 
         watch_create_request.progress_notify = progress_notify
 
-        if filters is not None:
-            watch_create_request.filters.extend(filters)
+        # We alter the behavior of watch filters to make its API a bit more
+        # user-friendly, as there are only two type of events, put and
+        # delete, we have three variants: all events, put-only events and
+        # delete-only events.
+        if kind is not None:
+            if not isinstance(kind, rtypes.EventKind):
+                raise TypeError(
+                    f'an instance of EventKind should be provided, not {type(kind)}')
+
+            if kind == rtypes.EventKind.PUT:
+                watch_create_request.filters.append(rpc.WatchCreateRequest.FilterType.NODELETE)
+
+            if kind == rtypes.EventKind.DELETE:
+                watch_create_request.filters.append(rpc.WatchCreateRequest.FilterType.NOPUT)
 
         watch_create_request.prev_kv = prev_kv
 
@@ -222,7 +234,7 @@ class Watcher:
         range_end: typing.Optional[bytes] = None,
         start_revision: typing.Optional[int] = None,
         progress_notify: bool = False,
-        filters: typing.Optional[typing.List] = None,
+        kind: typing.Optional[rtypes.EventKind] = None,
         prev_kv: bool = False,
         watch_id: typing.Optional[int] = None,
         fragment: bool = False,
@@ -253,9 +265,9 @@ class Watcher:
             from a recent known revision. The server may decide how often it will
             send notifications based on the current load.
 
-        :param list filters:
-            Filter the events by type, ``PUT`` or ``DELETE``, at server side before it sends
-            back to the watcher.
+        :param aetcd.rtypes.EventKind kind:
+            Filter the events by :class:`~aetcd.rtypes.EventKind`,
+            at server side before it sends back to the watcher.
 
         :param bool prev_kv:
             If set, created watcher gets the previous key-value before the event happend.
@@ -292,7 +304,7 @@ class Watcher:
                 range_end=range_end,
                 start_revision=start_revision,
                 progress_notify=progress_notify,
-                filters=filters,
+                kind=kind,
                 prev_kv=prev_kv,
                 watch_id=watch_id,
                 fragment=fragment,

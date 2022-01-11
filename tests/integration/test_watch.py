@@ -144,6 +144,72 @@ async def test_watch_key_prefix(etcdctl, etcd, etcdctl_put):
 
 
 @pytest.mark.asyncio
+async def test_watch_key_once_with_put_kind(etcdctl, etcd, etcdctl_put):
+    def update_key():
+        # Sleep to make watch can get the event
+        time.sleep(2)
+        etcdctl_put('key', '1')
+        time.sleep(1)
+        etcdctl_put('key', '2')
+        time.sleep(1)
+
+    t = threading.Thread(name='update_key', target=update_key)
+    t.start()
+
+    put_count = 0
+    w = await etcd.watch(b'key', kind=aetcd.EventKind.PUT, prev_kv=True)
+    async for event in w:
+        assert event.kv.key == b'key'
+
+        if put_count == 0:
+            assert event.prev_kv.value == b''
+
+        if put_count == 1:
+            assert event.prev_kv.value == b'1'
+
+        put_count += 1
+        if put_count > 1:
+            # If cancel not work, we will block in this for-loop forever
+            await w.cancel()
+
+    assert put_count == 2
+
+    t.join()
+
+
+@pytest.mark.asyncio
+async def test_watch_key_once_with_delete_kind(etcdctl, etcd, etcdctl_put):
+    def update_key():
+        # Sleep to make watch can get the event
+        time.sleep(2)
+        etcdctl_put('key', '1')
+        time.sleep(1)
+        etcdctl('del', 'key')
+        time.sleep(1)
+        etcdctl_put('key', '2')
+        time.sleep(1)
+        etcdctl('del', 'key')
+        time.sleep(1)
+
+    t = threading.Thread(name='update_key', target=update_key)
+    t.start()
+
+    del_count = 0
+    w = await etcd.watch(b'key', kind=aetcd.EventKind.DELETE)
+    async for event in w:
+        assert event.kv.key == b'key'
+
+        del_count += 1
+        if del_count > 1:
+            # If cancel not work, we will block in this for-loop forever
+            await w.cancel()
+
+    assert del_count == 2
+
+    t.join()
+
+
+@pytest.mark.asyncio
 async def test_watch_key_prefix_once_sequential(etcd):
     with pytest.raises(aetcd.exceptions.WatchTimeoutError):
         await etcd.watch_prefix_once(b'/key', 1)

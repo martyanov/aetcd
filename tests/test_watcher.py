@@ -46,3 +46,14 @@ async def test_watch_with_timeout_on_connect(mocker, rpc_error):
         with pytest.raises(aetcd.exceptions.ConnectionTimeoutError):
             async for _ in await etcd.watch(b'key'):
                 pass
+
+
+@pytest.mark.asyncio
+async def test_watcher_with_wrong_kind(mocker):
+    watcher = aetcd.watcher.Watcher(mocker.Mock())
+
+    with pytest.raises(
+        TypeError,
+        match='an instance of EventKind should be provided',
+    ):
+        await watcher.add_callback(b'key', None, kind='put')
