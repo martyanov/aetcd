@@ -234,6 +234,66 @@ async def test_delete_prefix_keys(etcdctl, etcd):
 
 
 @pytest.mark.asyncio
+async def test_delete_prefix_keys_with_prev_kv(etcdctl, etcd):
+    etcdctl('put', '/key1', 'value1')
+    etcdctl('put', '/key2', 'value2')
+
+    response = await etcd.delete_prefix(b'/key', prev_kv=True)
+    assert response.deleted == 2
+
+    kv1, kv2 = response.prev_kvs
+    assert kv1.value == b'value1'
+    assert kv2.value == b'value2'
+
+
+@pytest.mark.asyncio
+async def test_delete_range_keys(etcdctl, etcd):
+    for k, v in {
+        '/key\1': 'value0',
+        '/key1': 'value1',
+        '/key2': 'value2',
+        '/key3': 'value3',
+        '/key3\1': 'value30',
+        '/key4': 'value4',
+    }.items():
+        etcdctl('put', k, v)
+
+    result = await etcd.get(b'/key2')
+    assert result.value == b'value2'
+
+    result = await etcd.get(b'/key4')
+    assert result.value == b'value4'
+
+    response = await etcd.delete_range(b'/key0', b'/key4')
+    assert response.deleted == 4
+
+    result = await etcd.get(b'/key\1')
+    assert result.value == b'value0'
+
+    result = await etcd.get(b'/key1')
+    assert result is None
+
+    result = await etcd.get(b'/key3\1')
+    assert result is None
+
+    result = await etcd.get(b'/key4')
+    assert result.value == b'value4'
+
+
+@pytest.mark.asyncio
+async def test_delete_range_keys_with_prev_kv(etcdctl, etcd):
+    etcdctl('put', '/key1', 'value1')
+    etcdctl('put', '/key2', 'value2')
+
+    response = await etcd.delete_range(b'/key1', b'/key3', prev_kv=True)
+    assert response.deleted == 2
+
+    kv1, kv2 = response.prev_kvs
+    assert kv1.value == b'value1'
+    assert kv2.value == b'value2'
+
+
+@pytest.mark.asyncio
 async def test_replace_success(etcd):
     await etcd.put(b'/key', b'value1')
     status = await etcd.replace(b'/key', b'value1', b'value2')

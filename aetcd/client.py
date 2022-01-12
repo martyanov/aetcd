@@ -258,7 +258,7 @@ class Client:
         """Get a range of keys with a prefix from the key-value store.
 
         :param bytes key_prefix:
-            First key in range.
+            Key prefix to get.
 
         :return:
             An instance of :class:`~aetcd.rtypes.GetRange`.
@@ -461,12 +461,64 @@ class Client:
     @_ensure_connected
     async def delete_prefix(
         self,
-        prefix: bytes,
+        key_prefix: bytes,
+        prev_kv: bool = False,
     ) -> rtypes.DeleteRange:
-        """Delete a range of keys with a prefix from the key-value store."""
+        """Delete a range of keys with a prefix from the key-value store.
+
+        :param bytes key_prefix:
+            Key prefix to delete.
+
+        :param bool prev_kv:
+            Whether to return deleted key-value pairs.
+
+        :return:
+            An instance of :class:`~aetcd.rtypes.DeleteRange`.
+        """
         delete_request = self._build_delete_request(
-            prefix,
-            range_end=utils.prefix_range_end(prefix),
+            key_prefix,
+            range_end=utils.prefix_range_end(key_prefix),
+            prev_kv=prev_kv,
+        )
+
+        delete_response = await self.kvstub.DeleteRange(
+            delete_request,
+            timeout=self._timeout,
+            metadata=self.metadata,
+        )
+
+        return rtypes.DeleteRange(
+            delete_response.header,
+            delete_response.deleted,
+            delete_response.prev_kvs,
+        )
+
+    @_handle_errors
+    @_ensure_connected
+    async def delete_range(
+        self,
+        range_start: bytes,
+        range_end: bytes,
+        prev_kv: bool = False,
+    ) -> rtypes.DeleteRange:
+        """Delete a range of keys from the key-value store.
+
+        :param bytes range_start:
+            First key in range.
+
+        :param bytes range_end:
+            Last key in range.
+
+        :param bool prev_kv:
+            Whether to return deleted key-value pairs.
+
+        :return:
+            An instance of :class:`~aetcd.rtypes.DeleteRange`.
+        """
+        delete_request = self._build_delete_request(
+            range_start,
+            range_end=range_end,
+            prev_kv=prev_kv,
         )
 
         delete_response = await self.kvstub.DeleteRange(
