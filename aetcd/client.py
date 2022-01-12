@@ -258,7 +258,7 @@ class Client:
         """Get a range of keys with a prefix from the key-value store.
 
         :param bytes key_prefix:
-            First key in range.
+            Key prefix to get.
 
         :return:
             An instance of :class:`~aetcd.rtypes.GetRange`.
