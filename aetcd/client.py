@@ -52,7 +52,7 @@ def _ensure_connected(f):
     return functools.wraps(f)(handler)
 
 
-class Transactions(object):
+class Transactions:
     def __init__(self):
         self.value = transactions.Value
         self.version = transactions.Version
@@ -65,7 +65,7 @@ class Transactions(object):
         self.txn = transactions.Txn
 
 
-class Status(object):
+class Status:
     def __init__(self, version, db_size, leader, raft_index, raft_term):
         self.version = version
         self.db_size = db_size
@@ -74,7 +74,7 @@ class Status(object):
         self.raft_term = raft_term
 
 
-class Alarm(object):
+class Alarm:
     """A cluster member alarm.
 
     :param alarm_type:

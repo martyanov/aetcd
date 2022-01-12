@@ -1,4 +1,4 @@
-class Lease(object):
+class Lease:
     """A lease.
 
     :param id: ID of the lease
