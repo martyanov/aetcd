@@ -251,6 +251,7 @@ class Client:
     async def get_prefix(
         self,
         key_prefix: bytes,
+        limit: int = 0,
         sort_order: typing.Optional[str] = None,
         sort_target: str = 'key',
         keys_only: bool = False,
@@ -260,12 +261,20 @@ class Client:
         :param bytes key_prefix:
             Key prefix to get.
 
+        :param int limit:
+            Limit on the number of keys returned for the request.
+            When limit is set to 0 (default), it is treated as no limit.
+
+        :param bool keys_only:
+            Returns only keys and not values.
+
         :return:
             An instance of :class:`~aetcd.rtypes.GetRange`.
         """
         range_request = self._build_get_range_request(
             key=key_prefix,
             range_end=utils.prefix_range_end(key_prefix),
+            limit=limit,
             sort_order=sort_order,
             sort_target=sort_target,
             keys_only=keys_only,
@@ -290,8 +299,10 @@ class Client:
         self,
         range_start: bytes,
         range_end: bytes,
+        limit: int = 0,
         sort_order: typing.Optional[str] = None,
         sort_target: str = 'key',
+        keys_only: bool = False,
     ) -> rtypes.GetRange:
         """Get a range of keys from the key-value store.
 
@@ -301,14 +312,23 @@ class Client:
         :param bytes range_end:
             Last key in range.
 
+        :param int limit:
+            Limit on the number of keys returned for the request.
+            When limit is set to 0 (default), it is treated as no limit.
+
+        :param bool keys_only:
+            Returns only keys and not values.
+
         :return:
             An instance of :class:`~aetcd.rtypes.GetRange`.
         """
         range_request = self._build_get_range_request(
             key=range_start,
             range_end=range_end,
+            limit=limit,
             sort_order=sort_order,
             sort_target=sort_target,
+            keys_only=keys_only,
         )
 
         range_response = await self.kvstub.Range(
@@ -328,11 +348,19 @@ class Client:
     @_ensure_connected
     async def get_all(
         self,
-        sort_order=None,
-        sort_target='key',
-        keys_only=False,
+        limit: int = 0,
+        sort_order: typing.Optional[str] = None,
+        sort_target: str = 'key',
+        keys_only: bool = False,
     ) -> rtypes.GetRange:
         """Get all keys from the key-value store.
+
+        :param int limit:
+            Limit on the number of keys returned for the request.
+            When limit is set to 0 (default), it is treated as no limit.
+
+        :param bool keys_only:
+            Returns only keys and not values.
 
         :return:
             An instance of :class:`~aetcd.rtypes.GetRange`.
@@ -340,6 +368,7 @@ class Client:
         range_request = self._build_get_range_request(
             key=b'\0',
             range_end=b'\0',
+            limit=limit,
             sort_order=sort_order,
             sort_target=sort_target,
             keys_only=keys_only,
@@ -1277,7 +1306,7 @@ class Client:
             file_obj.write(response.blob)
 
     @staticmethod
-    def _build_get_range_request(
+    def _build_get_range_request(  # noqa: C901
         key: bytes,
         range_end: typing.Optional[bytes] = None,
         limit: typing.Optional[int] = None,
@@ -1292,7 +1321,7 @@ class Client:
         min_create_revision: typing.Optional[int] = None,
         max_create_revision: typing.Optional[int] = None,
     ) -> rpc.RangeRequest:
-        # TODO: Add missing request parameters: limit, revision, count_only,
+        # TODO: Add missing request parameters: revision, count_only,
         #       mid_mod_revision, max_mod_revision, min_create_revision, max_create_revision
         range_request = rpc.RangeRequest()
 
@@ -1300,6 +1329,9 @@ class Client:
 
         if range_end is not None:
             range_request.range_end = range_end
+
+        if limit is not None:
+            range_request.limit = limit
 
         if sort_order is None:
             range_request.sort_order = rpc.RangeRequest.NONE

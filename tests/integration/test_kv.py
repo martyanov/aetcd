@@ -84,6 +84,19 @@ async def test_get_prefix_with_keys_only(etcdctl, etcd):
 
 
 @pytest.mark.asyncio
+async def test_get_prefix_with_limit(etcdctl, etcd):
+    for i in range(10):
+        etcdctl('put', f'/inrange{i}', 'in range')
+
+    results = list(await etcd.get_prefix(b'/inrange', limit=3))
+
+    assert len(results) == 3
+    for result in results:
+        assert result.key.startswith(b'/inrange')
+        assert result.value == b'in range'
+
+
+@pytest.mark.asyncio
 async def test_get_range(etcdctl, etcd):
     for char in string.ascii_lowercase:
         if char < 'p':
@@ -95,6 +108,35 @@ async def test_get_range(etcdctl, etcd):
 
     assert len(results) == 15
     for result in results:
+        assert result.value == b'in range'
+
+
+@pytest.mark.asyncio
+async def test_get_range_with_keys_only(etcdctl, etcd):
+    for i in range(20):
+        etcdctl('put', f'/inrange{i}', 'in range')
+
+    for i in range(5):
+        etcdctl('put', f'/notinrange{i}', 'not in range')
+
+    results = list(await etcd.get_range(b'/inrange', b'/inrangf', keys_only=True))
+
+    assert len(results) == 20
+    for result in results:
+        assert result.key.startswith(b'/inrange')
+        assert not result.value
+
+
+@pytest.mark.asyncio
+async def test_get_range_with_limit(etcdctl, etcd):
+    for i in range(10):
+        etcdctl('put', f'/inrange{i}', 'in range')
+
+    results = list(await etcd.get_range(b'/inrange', b'/inrangf', limit=3))
+
+    assert len(results) == 3
+    for result in results:
+        assert result.key.startswith(b'/inrange')
         assert result.value == b'in range'
 
 
@@ -153,6 +195,32 @@ async def test_get_all(etcdctl, etcd):
 async def test_get_all_not_found(etcd):
     result = list(await etcd.get_all())
     assert not result
+
+
+@pytest.mark.asyncio
+async def test_get_all_with_keys_only(etcdctl, etcd):
+    for i in range(10):
+        etcdctl('put', f'/inrange{i}', 'in range')
+
+    results = list(await etcd.get_all(keys_only=True))
+
+    assert len(results) == 10
+    for result in results:
+        assert result.key.startswith(b'/inrange')
+        assert not result.value
+
+
+@pytest.mark.asyncio
+async def test_get_all_with_limit(etcdctl, etcd):
+    for i in range(10):
+        etcdctl('put', f'/inrange{i}', 'in range')
+
+    results = list(await etcd.get_all(limit=3))
+
+    assert len(results) == 3
+    for result in results:
+        assert result.key.startswith(b'/inrange')
+        assert result.value == b'in range'
 
 
 @pytest.mark.asyncio
