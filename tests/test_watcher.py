@@ -4,6 +4,7 @@ import pytest
 
 import aetcd
 import aetcd.exceptions
+import aetcd.watcher
 
 
 @pytest.mark.asyncio
@@ -37,11 +38,12 @@ async def test_watch_with_exception_during_watch(mocker, etcd, rpc_error):
 
 @pytest.mark.asyncio
 async def test_watch_with_timeout_on_connect(mocker, rpc_error):
-    mocked_aiter = mocker.AsyncMock()
-    mocked_aiter.side_effect = rpc_error(aetcd.rpc.StatusCode.DEADLINE_EXCEEDED)
+    mocked_iter = mocker.AsyncMock()
+    mocked_iter.__aiter__.side_effect = rpc_error(aetcd.rpc.StatusCode.DEADLINE_EXCEEDED)
+    mocked_watch = mocker.Mock(return_value=mocked_iter)
 
     async with aetcd.Client(timeout=3) as etcd:
-        etcd._watcher._watchstub.Watch.__aiter__ = mocked_aiter
+        etcd._watcher._watchstub.Watch = mocked_watch
 
         with pytest.raises(aetcd.exceptions.ConnectionTimeoutError):
             async for _ in await etcd.watch(b'key'):

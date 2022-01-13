@@ -199,7 +199,7 @@ class Watcher:
 
             yield request
 
-    async def _handle_request(self, timeout, metadata):
+    async def _handle_request(self, metadata):
         try:
             async for response in self._watchstub.Watch(
                 self._iter_request(),
@@ -219,7 +219,7 @@ class Watcher:
                 return
 
             self._request_handler = asyncio.get_running_loop().create_task(
-                self._handle_request(self._timeout, self._metadata),
+                self._handle_request(self._metadata),
             )
 
     async def shutdown(self):

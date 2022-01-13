@@ -29,7 +29,7 @@ def etcdctl():
 
 
 @pytest.fixture
-async def etcd_client_ctx(etcdctl):
+async def client(etcdctl):
     host = 'localhost'
     port = 2379
 
@@ -40,11 +40,21 @@ async def etcd_client_ctx(etcdctl):
         port = url.port
 
     @contextlib.asynccontextmanager
-    async def _etcd_client_ctx(**client_kws):
+    async def _client(
+        host=host,
+        port=port,
+        username=None,
+        password=None,
+        timeout=None,
+        options=None,
+    ):
         async with aetcd.Client(
             host=host,
             port=port,
-            **client_kws,
+            username=username,
+            password=password,
+            timeout=timeout,
+            options=options,
         ) as client:
             yield client
 
@@ -52,10 +62,10 @@ async def etcd_client_ctx(etcdctl):
         result = etcdctl('get', '--prefix', '')
         assert 'kvs' not in result
 
-    return _etcd_client_ctx
+    return _client
 
 
 @pytest.fixture
-async def etcd(etcd_client_ctx):
-    async with etcd_client_ctx() as etcd:
+async def etcd(client):
+    async with client() as etcd:
         yield etcd

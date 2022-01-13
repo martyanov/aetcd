@@ -223,12 +223,14 @@ async def test_watch_key_prefix_once_sequential(etcd):
 
 
 @pytest.mark.asyncio
-async def test_watch_ignores_timeout(etcd_client_ctx, etcdctl_put):
-    async with etcd_client_ctx(timeout=1) as etcd:
+async def test_watch_key_ignores_global_timeout(client, etcdctl_put):
+    async with client(timeout=2) as etcd:
         w = await etcd.watch(b'key')
-        await asyncio.sleep(2)
+        await asyncio.sleep(3)
         etcdctl_put('key', '1')
+
         async for event in w:
             assert event.kv.value == b'1'
             break
+
         await w.cancel()

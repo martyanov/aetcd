@@ -107,7 +107,7 @@ class Client:
         Password to be used for authentication.
 
     :param int timeout:
-        Connection timeout in secods.
+        Connection timeout in seconds.
 
     :param dict options:
         Options provided to the underlying gRPC channel.
