@@ -1,6 +1,16 @@
 name: CI
 
-on: ['push', 'pull_request']
+on:
+  push:
+    branches: ['master']
+    tags: ['v*']
+
+  pull_request:
+    branches: ['master']
+
+  schedule:
+    # Daily at 4 AM UTC
+    - cron: '0 4 * * *'
 
 jobs:
   lint:
