@@ -15,6 +15,42 @@ class _Slotted:
         ) + ']'
 
 
+class SortOrder(enum.Enum):
+    #: No sort order.
+    NONE = enum.auto()
+
+    #: Ascending sort order - lowest target value first.
+    ASCEND = enum.auto()
+
+    #: Descending sort order - highest target value first.
+    DESCEND = enum.auto()
+
+
+class SortTarget(enum.Enum):
+    #: Sort range operation results by key.
+    KEY = enum.auto()
+
+    #: Sort range operation results by key version.
+    VERSION = enum.auto()
+
+    #: Sort range operation results by revision of the last creation on the key.
+    CREATE = enum.auto()
+
+    #: Sort range operation results by revision of the last modification on the key.
+    MOD = enum.auto()
+
+    #: Sort range operation results by value.
+    VALUE = enum.auto()
+
+
+class EventKind(enum.Enum):
+    #: Designates a ``PUT`` event.
+    PUT = enum.auto()
+
+    #: Designates a ``DELETE`` event.
+    DELETE = enum.auto()
+
+
 class ResponseHeader(_Slotted):
     """Represents the metadata for the response."""
 
@@ -233,14 +269,6 @@ class DeleteRange:
         )
 
 
-class EventKind(str, enum.Enum):
-    #: Designates a ``PUT`` event.
-    PUT = 'PUT'
-
-    #: Designates a ``DELETE`` event.
-    DELETE = 'DELETE'
-
-
 class Event(_Slotted):
     """Reperesents a watch event."""
 
@@ -251,11 +279,11 @@ class Event(_Slotted):
     ]
 
     def __init__(self, kind, kv, prev_kv=None):
-        #: The kind of event. If the type is a ``PUT``, it indicates
-        #: new data has been stored to the key. If the type is a ``DELETE``,
-        #: it indicates the key was deleted.
-        self.kind: EventKind = rpc.Event.EventType.DESCRIPTOR.values_by_number[
-            kind].name
+        #: The kind of event.
+        #: ``PUT`` indicates that new data has been stored to the key.
+        #: ``DELETE`` indicates the key was deleted.
+        self.kind: EventKind = EventKind[
+            rpc.Event.EventType.DESCRIPTOR.values_by_number[kind].name]
 
         #: Holds the key-value for the event.
         #: A ``PUT`` event contains current key-value pair.

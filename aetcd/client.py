@@ -251,8 +251,9 @@ class Client:
     async def get_prefix(
         self,
         key_prefix: bytes,
-        sort_order: typing.Optional[str] = None,
-        sort_target: str = 'key',
+        limit: int = 0,
+        sort_order: rtypes.SortOrder = rtypes.SortOrder.NONE,
+        sort_target: rtypes.SortTarget = rtypes.SortTarget.KEY,
         keys_only: bool = False,
     ) -> rtypes.GetRange:
         """Get a range of keys with a prefix from the key-value store.
@@ -260,12 +261,26 @@ class Client:
         :param bytes key_prefix:
             Key prefix to get.
 
+        :param aetcd.rtypes.SortOrder sort_order:
+            Order results in :class:`~aetcd.rtypes.SortOrder` direction.
+
+        :param aetcd.rtypes.SortTarget sort_target:
+            Order results by :class:`~aetcd.rtypes.SortTarget`.
+
+        :param int limit:
+            Limit on the number of keys returned for the request.
+            When limit is set to 0 (default), it is treated as no limit.
+
+        :param bool keys_only:
+            Returns only keys and not values.
+
         :return:
             An instance of :class:`~aetcd.rtypes.GetRange`.
         """
         range_request = self._build_get_range_request(
             key=key_prefix,
             range_end=utils.prefix_range_end(key_prefix),
+            limit=limit,
             sort_order=sort_order,
             sort_target=sort_target,
             keys_only=keys_only,
@@ -290,8 +305,10 @@ class Client:
         self,
         range_start: bytes,
         range_end: bytes,
-        sort_order: typing.Optional[str] = None,
-        sort_target: str = 'key',
+        limit: int = 0,
+        sort_order: rtypes.SortOrder = rtypes.SortOrder.NONE,
+        sort_target: rtypes.SortTarget = rtypes.SortTarget.KEY,
+        keys_only: bool = False,
     ) -> rtypes.GetRange:
         """Get a range of keys from the key-value store.
 
@@ -301,14 +318,29 @@ class Client:
         :param bytes range_end:
             Last key in range.
 
+        :param aetcd.rtypes.SortOrder sort_order:
+            Order results in :class:`~aetcd.rtypes.SortOrder` direction.
+
+        :param aetcd.rtypes.SortTarget sort_target:
+            Order results by :class:`~aetcd.rtypes.SortTarget`.
+
+        :param int limit:
+            Limit on the number of keys returned for the request.
+            When limit is set to 0 (default), it is treated as no limit.
+
+        :param bool keys_only:
+            Returns only keys and not values.
+
         :return:
             An instance of :class:`~aetcd.rtypes.GetRange`.
         """
         range_request = self._build_get_range_request(
             key=range_start,
             range_end=range_end,
+            limit=limit,
             sort_order=sort_order,
             sort_target=sort_target,
+            keys_only=keys_only,
         )
 
         range_response = await self.kvstub.Range(
@@ -328,11 +360,25 @@ class Client:
     @_ensure_connected
     async def get_all(
         self,
-        sort_order=None,
-        sort_target='key',
-        keys_only=False,
+        limit: int = 0,
+        sort_order: rtypes.SortOrder = rtypes.SortOrder.NONE,
+        sort_target: rtypes.SortTarget = rtypes.SortTarget.KEY,
+        keys_only: bool = False,
     ) -> rtypes.GetRange:
         """Get all keys from the key-value store.
+
+        :param aetcd.rtypes.SortOrder sort_order:
+            Order results in :class:`~aetcd.rtypes.SortOrder` direction.
+
+        :param aetcd.rtypes.SortTarget sort_target:
+            Order results by :class:`~aetcd.rtypes.SortTarget`.
+
+        :param int limit:
+            Limit on the number of keys returned for the request.
+            When limit is set to 0 (default), it is treated as no limit.
+
+        :param bool keys_only:
+            Returns only keys and not values.
 
         :return:
             An instance of :class:`~aetcd.rtypes.GetRange`.
@@ -340,6 +386,7 @@ class Client:
         range_request = self._build_get_range_request(
             key=b'\0',
             range_end=b'\0',
+            limit=limit,
             sort_order=sort_order,
             sort_target=sort_target,
             keys_only=keys_only,
@@ -1277,13 +1324,13 @@ class Client:
             file_obj.write(response.blob)
 
     @staticmethod
-    def _build_get_range_request(
+    def _build_get_range_request(  # noqa: C901
         key: bytes,
         range_end: typing.Optional[bytes] = None,
         limit: typing.Optional[int] = None,
         revision: typing.Optional[int] = None,
-        sort_order: typing.Optional[str] = None,
-        sort_target: str = 'key',
+        sort_order: rtypes.SortOrder = rtypes.SortOrder.NONE,
+        sort_target: rtypes.SortTarget = rtypes.SortTarget.KEY,
         serializable: bool = False,
         keys_only: bool = False,
         count_only: typing.Optional[int] = None,
@@ -1292,7 +1339,7 @@ class Client:
         min_create_revision: typing.Optional[int] = None,
         max_create_revision: typing.Optional[int] = None,
     ) -> rpc.RangeRequest:
-        # TODO: Add missing request parameters: limit, revision, count_only,
+        # TODO: Add missing request parameters: revision, count_only,
         #       mid_mod_revision, max_mod_revision, min_create_revision, max_create_revision
         range_request = rpc.RangeRequest()
 
@@ -1301,28 +1348,18 @@ class Client:
         if range_end is not None:
             range_request.range_end = range_end
 
-        if sort_order is None:
-            range_request.sort_order = rpc.RangeRequest.NONE
-        elif sort_order == 'ascend':
-            range_request.sort_order = rpc.RangeRequest.ASCEND
-        elif sort_order == 'descend':
-            range_request.sort_order = rpc.RangeRequest.DESCEND
-        else:
-            raise ValueError(f'unknown sort order: {sort_order!r}')
+        if limit is not None:
+            range_request.limit = limit
 
-        if sort_target is None or sort_target == 'key':
-            range_request.sort_target = rpc.RangeRequest.KEY
-        elif sort_target == 'version':
-            range_request.sort_target = rpc.RangeRequest.VERSION
-        elif sort_target == 'create':
-            range_request.sort_target = rpc.RangeRequest.CREATE
-        elif sort_target == 'mod':
-            range_request.sort_target = rpc.RangeRequest.MOD
-        elif sort_target == 'value':
-            range_request.sort_target = rpc.RangeRequest.VALUE
-        else:
-            raise ValueError('sort_target must be one of "key", '
-                             '"version", "create", "mod" or "value"')
+        range_request.sort_order = getattr(
+            rpc.RangeRequest.SortOrder,
+            rtypes.SortOrder(sort_order).name,
+        )
+
+        range_request.sort_target = getattr(
+            rpc.RangeRequest.SortTarget,
+            rtypes.SortTarget(sort_target).name,
+        )
 
         range_request.serializable = serializable
         range_request.keys_only = keys_only
