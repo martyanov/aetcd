@@ -644,12 +644,16 @@ class Client:
         canceled = asyncio.Event()
 
         async def cancel():
+            if not self._watcher:
+                raise RuntimeError('Calling watcher.cancel() on a closed client')
             canceled.set()
             await events.put(None)
             await self._watcher.cancel(watcher_callback.watch_id)
 
         @_handle_errors
         async def iterator():
+            if not self._watcher:
+                raise RuntimeError('Using watcher as iterator on a closed client')
             while not canceled.is_set():
                 event = await events.get()
                 if event is None:

@@ -234,3 +234,46 @@ async def test_watch_key_ignores_global_timeout(client, etcdctl_put):
             break
 
         await w.cancel()
+
+
+@pytest.mark.asyncio
+async def test_watch_event_before_iterator(etcd, etcdctl_put):
+    w = await etcd.watch(b'key')
+
+    etcdctl_put('key', '1')
+    await asyncio.sleep(1)
+    w_iter = aiter(w)
+
+    event = await anext(w_iter)
+    assert event.kv.value == b'1'
+
+    await w.cancel()
+
+    with pytest.raises(StopAsyncIteration):
+        await anext(w_iter)
+
+
+@pytest.mark.asyncio
+async def test_watch_for_closed_client(etcd, etcdctl_put):
+    w = await etcd.watch(b'key')
+
+    etcdctl_put('key', '1')
+    w_iter = aiter(w)
+    event = await anext(w_iter)
+    assert event.kv.value == b'1'
+
+    etcdctl_put('key', '2')
+    await etcd.close()
+    # key=2 event will be lost on close(), if not consumed already
+
+    etcdctl_put('key', '3')
+    async for kv in w_iter:
+        raise AssertionError('non-empty watcher iterator with closed client')
+
+    etcdctl_put('key', '4')
+    with pytest.raises(RuntimeError):
+        async for kv in w:
+            raise AssertionError('non-empty watcher iterator with closed client')
+
+    with pytest.raises(RuntimeError):
+        await w.cancel()
