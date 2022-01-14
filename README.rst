@@ -25,6 +25,8 @@ Python asyncio-based client for etcd
    :alt: License
    :target: https://github.com/martyanov/aetcd3/blob/master/LICENSE
 
+NOTICE: Please use `aetcd <https://pypi.org/project/aetcd>`_ package instead, as this is now a canonical name for the project. ``aetcd3`` is now outdated and not maintained anymore.
+
 Installation
 ~~~~~~~~~~~~
 
