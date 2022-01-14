@@ -22,6 +22,8 @@ from .rtypes import GetRange  # noqa: F401
 from .rtypes import KeyValue  # noqa: F401
 from .rtypes import Put  # noqa: F401
 from .rtypes import ResponseHeader  # noqa: F401
+from .rtypes import SortOrder  # noqa: F401
+from .rtypes import SortTarget  # noqa: F401
 from .rtypes import Watch  # noqa: F401
 from .watcher import Watcher  # noqa: F401
 from .watcher import WatcherCallback  # noqa: F401

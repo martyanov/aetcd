@@ -7,6 +7,7 @@ import subprocess
 
 import pytest
 
+import aetcd
 import aetcd.exceptions
 import aetcd.rpc
 
@@ -152,7 +153,7 @@ async def test_get_range_with_sort_order(etcdctl, etcd):
         etcdctl('put', f'/key{k}', v)
 
     keys = b''
-    for result in await etcd.get_prefix(b'/key', sort_order='ascend'):
+    for result in await etcd.get_prefix(b'/key', sort_order=aetcd.SortOrder.ASCEND):
         keys += remove_prefix(result.key, b'/key')
 
     assert keys == initial_keys.encode('utf-8')
@@ -160,7 +161,7 @@ async def test_get_range_with_sort_order(etcdctl, etcd):
     reverse_keys = b''
     for result in await etcd.get_prefix(
         b'/key',
-        sort_order='descend',
+        sort_order=aetcd.SortOrder.DESCEND,
     ):
         reverse_keys += remove_prefix(result.key, b'/key')
 

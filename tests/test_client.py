@@ -1,5 +1,6 @@
 import pytest
 
+import aetcd
 import aetcd.client
 import aetcd.rpc
 
@@ -15,12 +16,9 @@ def test_auth_with_no_username_or_password():
 def test__build_get_range_request_sort_target():
     key = b'key'
     sort_targets = {
-        None: aetcd.rpc.RangeRequest.KEY,
-        'key': aetcd.rpc.RangeRequest.KEY,
-        'version': aetcd.rpc.RangeRequest.VERSION,
-        'create': aetcd.rpc.RangeRequest.CREATE,
-        'mod': aetcd.rpc.RangeRequest.MOD,
-        'value': aetcd.rpc.RangeRequest.VALUE,
+        aetcd.SortTarget.KEY: aetcd.rpc.RangeRequest.KEY,
+        aetcd.SortTarget.CREATE: aetcd.rpc.RangeRequest.CREATE,
+        aetcd.SortTarget.MOD: aetcd.rpc.RangeRequest.MOD,
     }
 
     for sort_target, expected_sort_target in sort_targets.items():
@@ -31,15 +29,18 @@ def test__build_get_range_request_sort_target():
         assert range_request.sort_target == expected_sort_target
 
     with pytest.raises(ValueError):
-        aetcd.client.Client._build_get_range_request(key, sort_target='unknown')
+        aetcd.client.Client._build_get_range_request(key, sort_target='KEY')
+
+    with pytest.raises(ValueError):
+        aetcd.client.Client._build_get_range_request(key, sort_target=None)
 
 
 def test__build_get_range_request_sort_order():
     key = b'key'
     sort_orders = {
-        None: aetcd.rpc.RangeRequest.NONE,
-        'ascend': aetcd.rpc.RangeRequest.ASCEND,
-        'descend': aetcd.rpc.RangeRequest.DESCEND,
+        aetcd.SortOrder.NONE: aetcd.rpc.RangeRequest.NONE,
+        aetcd.SortOrder.ASCEND: aetcd.rpc.RangeRequest.ASCEND,
+        aetcd.SortOrder.DESCEND: aetcd.rpc.RangeRequest.DESCEND,
     }
 
     for sort_order, expected_sort_order in sort_orders.items():
@@ -50,7 +51,10 @@ def test__build_get_range_request_sort_order():
         assert range_request.sort_order == expected_sort_order
 
     with pytest.raises(ValueError):
-        aetcd.client.Client._build_get_range_request(key, sort_order='unknown')
+        aetcd.client.Client._build_get_range_request(key, sort_order='ASCEND')
+
+    with pytest.raises(ValueError):
+        aetcd.client.Client._build_get_range_request(key, sort_order=None)
 
 
 def test__ops_to_requests():
