@@ -11,7 +11,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 project = 'aetcd'
-copyright = '2021, Andrey Martyanov'
+copyright = '2022, Andrey Martyanov'
 author = 'Andrey Martyanov'
 
 version = release = importlib.metadata.version('aetcd')
