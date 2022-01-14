@@ -1,4 +1,4 @@
-import time
+import asyncio
 import uuid
 
 from . import exceptions
@@ -93,16 +93,17 @@ class Lock:
         :return:
             ``True`` if the lock has been acquired, ``False`` otherwise.
         """
+        loop = asyncio.get_running_loop()
         deadline = None
         if timeout is not None:
-            deadline = time.time() + timeout
+            deadline = loop.time() + timeout
 
         while True:
             if await self._try_acquire():
                 return True
 
             if deadline is not None:
-                remaining_timeout = max(deadline - time.time(), 0)
+                remaining_timeout = max(deadline - loop.time(), 0)
                 if remaining_timeout == 0:
                     return False
             else:
