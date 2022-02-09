@@ -1,6 +1,7 @@
 from grpc import RpcError  # noqa: F401
 from grpc import Status  # noqa: F401
 from grpc import StatusCode  # noqa: F401
+from grpc import ssl_channel_credentials  # noqa: F401
 from grpc.aio import AbortError  # noqa: F401
 from grpc.aio import AioRpcError  # noqa: F401
 from grpc.aio import BaseError  # noqa: F401
