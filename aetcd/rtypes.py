@@ -254,8 +254,7 @@ class Event(_Slotted):
         #: The kind of event. If the type is a ``PUT``, it indicates
         #: new data has been stored to the key. If the type is a ``DELETE``,
         #: it indicates the key was deleted.
-        self.kind: EventKind = rpc.Event.EventType.DESCRIPTOR.values_by_number[
-            kind].name
+        self.kind: EventKind = rpc.Event.EventType.DESCRIPTOR.values_by_number[kind].name
 
         #: Holds the key-value for the event.
         #: A ``PUT`` event contains current key-value pair.
@@ -294,9 +293,8 @@ class Watch:
         #: The ID of the watcher that emits the events.
         self.watch_id: int = watch_id
 
-    async def __aiter__(self):
-        async for event in self._iterator():
-            yield event
+    def __aiter__(self):
+        return self._iterator()
 
     async def cancel(self):
         """Cancel the watcher so that no more events are emitted."""

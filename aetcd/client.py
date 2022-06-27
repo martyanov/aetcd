@@ -37,13 +37,13 @@ def _handle_errors(f):
 
 def _ensure_connected(f):
     if inspect.iscoroutinefunction(f):
-        async def handler(*args, **kwargs):
-            await args[0].connect()
-            return await f(*args, **kwargs)
+        async def handler(self, *args, **kwargs):
+            await self.connect()
+            return await f(self, *args, **kwargs)
     elif inspect.isasyncgenfunction(f):
-        async def handler(*args, **kwargs):
-            await args[0].connect()
-            async for data in f(*args, **kwargs):
+        async def handler(self, *args, **kwargs):
+            await self.connect()
+            async for data in f(self, *args, **kwargs):
                 yield data
     else:
         raise RuntimeError(
@@ -131,6 +131,8 @@ class Client:
         self._password = password
         self._timeout = timeout
         self._options = options or {}
+        self._connected = asyncio.Event()
+        self._is_connecting = False
 
         cred_params = (self._username, self._password)
         if any(cred_params) and None in cred_params:
@@ -154,11 +156,18 @@ class Client:
 
         self._watcher = None
 
+    @_handle_errors
     async def connect(self) -> None:
         """Establish a connection to an etcd."""
-        if self.channel:
+        if self._connected.is_set():
             return
 
+        if self._is_connecting:
+            # Another task is establishing a connection, just wait.
+            await self._connected.wait()
+            return
+
+        self._is_connecting = True
         target = f'{self._host}:{self._port}'
         self.channel = rpc.insecure_channel(target, options=self._options.items())
 
@@ -182,10 +191,22 @@ class Client:
         self._watcher = watcher.Watcher(
             rpc.WatchStub(self.channel),
             timeout=self._timeout,
+            metadata=self.metadata,
         )
+        self._connected.set()
+        self._is_connecting = False
 
     async def close(self) -> None:
-        """Close established connection and frees allocated resources."""
+        """Close established connection and frees allocated resources.
+
+        NOTE: It could be called while other operation is being executed.
+              At that time, the executing operation will be broken.
+        """
+        if not self._connected.is_set() and self._is_connecting:
+            # Halt at self.auth_stub.Authenticate() in connect()
+            # Wait for connect() is done
+            await self._connected.wait()
+
         if self.channel:
             # Shutdown the watcher
             if self._watcher is not None:
@@ -195,6 +216,7 @@ class Client:
             await self.channel.close()
 
             self._init_channel_attrs()
+        self._connected.clear()
 
     async def __aenter__(self):
         await self.connect()
@@ -533,8 +555,6 @@ class Client:
             delete_response.prev_kvs,
         )
 
-    @_handle_errors
-    @_ensure_connected
     async def replace(self, key, initial_value, new_value):
         """Atomically replace the value of a key with a new value.
 
@@ -562,8 +582,7 @@ class Client:
             success=[
                 self.transactions.put(key, new_value),
             ],
-            failure=[
-            ],
+            failure=[],
         )
 
         return status
@@ -666,8 +685,6 @@ class Client:
             watcher_callback.watch_id,
         )
 
-    @_handle_errors
-    @_ensure_connected
     async def watch_prefix(
         self,
         key_prefix: bytes,
@@ -802,8 +819,6 @@ class Client:
         finally:
             await self._watcher.cancel(watcher_callback.watch_id)
 
-    @_handle_errors
-    @_ensure_connected
     async def watch_prefix_once(
         self,
         key_prefix: bytes,
@@ -923,8 +938,7 @@ class Client:
         responses = []
         for response in txn_response.responses:
             response_type = response.WhichOneof('response')
-            if response_type in ['response_put', 'response_delete_range',
-                                 'response_txn']:
+            if response_type in ['response_put', 'response_delete_range', 'response_txn']:
                 responses.append(response)
 
             elif response_type == 'response_range':
@@ -965,9 +979,11 @@ class Client:
             timeout=self._timeout,
             metadata=self.metadata,
         )
-        return leases.Lease(lease_id=lease_grant_response.ID,
-                            ttl=lease_grant_response.TTL,
-                            etcd_client=self)
+        return leases.Lease(
+            lease_id=lease_grant_response.ID,
+            ttl=lease_grant_response.TTL,
+            etcd_client=self,
+        )
 
     @_handle_errors
     @_ensure_connected
@@ -1041,11 +1057,13 @@ class Client:
             # raise exception?
             leader = None
 
-        return Status(status_response.version,
-                      status_response.dbSize,
-                      leader,
-                      status_response.raftIndex,
-                      status_response.raftTerm)
+        return Status(
+            status_response.version,
+            status_response.dbSize,
+            leader,
+            status_response.raftIndex,
+            status_response.raftTerm,
+        )
 
     @_handle_errors
     @_ensure_connected
@@ -1196,17 +1214,17 @@ class Client:
         :return:
             A sequence of :class:`~aetcd.client.Alarm`.
         """
-        alarm_request = self._build_alarm_request('activate',
-                                                  member_id,
-                                                  'no space')
+        alarm_request = self._build_alarm_request('activate', member_id, 'no space')
         alarm_response = await self.maintenancestub.Alarm(
             alarm_request,
             timeout=self._timeout,
             metadata=self.metadata,
         )
 
-        return [Alarm(alarm.alarm, alarm.memberID)
-                for alarm in alarm_response.alarms]
+        return [
+            Alarm(alarm.alarm, alarm.memberID)
+            for alarm in alarm_response.alarms
+        ]
 
     @_handle_errors
     @_ensure_connected
@@ -1223,9 +1241,7 @@ class Client:
         :return:
             A sequence of :class:`~aetcd.client.Alarm`.
         """
-        alarm_request = self._build_alarm_request('get',
-                                                  member_id,
-                                                  alarm_type)
+        alarm_request = self._build_alarm_request('get', member_id, alarm_type)
         alarm_response = await self.maintenancestub.Alarm(
             alarm_request,
             timeout=self._timeout,
@@ -1246,17 +1262,17 @@ class Client:
 
         :return: A sequence of :class:`~aetcd.client.Alarm`.
         """
-        alarm_request = self._build_alarm_request('deactivate',
-                                                  member_id,
-                                                  'no space')
+        alarm_request = self._build_alarm_request('deactivate', member_id, 'no space')
         alarm_response = await self.maintenancestub.Alarm(
             alarm_request,
             timeout=self._timeout,
             metadata=self.metadata,
         )
 
-        return [Alarm(alarm.alarm, alarm.memberID)
-                for alarm in alarm_response.alarms]
+        return [
+            Alarm(alarm.alarm, alarm.memberID)
+            for alarm in alarm_response.alarms
+        ]
 
     @_handle_errors
     @_ensure_connected
@@ -1374,8 +1390,7 @@ class Client:
         request_ops = []
         for op in ops:
             if isinstance(op, transactions.Put):
-                request = self._build_put_request(op.key, op.value,
-                                                  op.lease, op.prev_kv)
+                request = self._build_put_request(op.key, op.value, op.lease, op.prev_kv)
                 request_op = rpc.RequestOp(request_put=request)
                 request_ops.append(request_op)
 
@@ -1385,8 +1400,7 @@ class Client:
                 request_ops.append(request_op)
 
             elif isinstance(op, transactions.Delete):
-                request = self._build_delete_request(op.key, op.range_end,
-                                                     op.prev_kv)
+                request = self._build_delete_request(op.key, op.range_end, op.prev_kv)
                 request_op = rpc.RequestOp(request_delete_range=request)
                 request_ops.append(request_op)
 
