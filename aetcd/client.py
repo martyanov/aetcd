@@ -112,6 +112,10 @@ class Client:
     :param dict options:
         Options provided to the underlying gRPC channel.
 
+    :param int connect_wait_timeout:
+        Connecting wait timeout, since connection could be initiated
+        from multiple coroutines.
+
     :return:
         A :class:`~aetcd.client.Client` instance.
     """
@@ -124,6 +128,7 @@ class Client:
         password: typing.Optional[str] = None,
         timeout: typing.Optional[int] = None,
         options: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        connect_wait_timeout: int = 3,
     ):
         self._host = host
         self._port = port
@@ -131,6 +136,7 @@ class Client:
         self._password = password
         self._timeout = timeout
         self._options = options or {}
+        self._connect_wait_timeout = connect_wait_timeout
         self._connected = asyncio.Event()
         self._is_connecting = False
 
@@ -163,49 +169,56 @@ class Client:
             return
 
         if self._is_connecting:
-            # Another task is establishing a connection, just wait.
-            await self._connected.wait()
+            # Another task is establishing a connection, just wait
+            await asyncio.wait_for(
+                self._connected.wait(),
+                self._connect_wait_timeout,
+            )
             return
 
-        self._is_connecting = True
-        target = f'{self._host}:{self._port}'
-        self.channel = rpc.insecure_channel(target, options=self._options.items())
+        try:
+            self._is_connecting = True
+            target = f'{self._host}:{self._port}'
+            self.channel = rpc.insecure_channel(target, options=self._options.items())
 
-        cred_params = [c is not None for c in (self._username, self._password)]
-        if all(cred_params):
-            self.auth_stub = rpc.AuthStub(self.channel)
-            auth_request = rpc.AuthenticateRequest(
-                name=self._username,
-                password=self._password,
+            cred_params = [c is not None for c in (self._username, self._password)]
+            if all(cred_params):
+                self.auth_stub = rpc.AuthStub(self.channel)
+                auth_request = rpc.AuthenticateRequest(
+                    name=self._username,
+                    password=self._password,
+                )
+
+                resp = await self.auth_stub.Authenticate(auth_request, timeout=self._timeout)
+                self.metadata = (('token', resp.token),)
+
+            self.kvstub = rpc.KVStub(self.channel)
+            self.clusterstub = rpc.ClusterStub(self.channel)
+            self.leasestub = rpc.LeaseStub(self.channel)
+            self.maintenancestub = rpc.MaintenanceStub(self.channel)
+
+            # Initialize a watcher
+            self._watcher = watcher.Watcher(
+                rpc.WatchStub(self.channel),
+                timeout=self._timeout,
+                metadata=self.metadata,
             )
 
-            resp = await self.auth_stub.Authenticate(auth_request, timeout=self._timeout)
-            self.metadata = (('token', resp.token),)
-
-        self.kvstub = rpc.KVStub(self.channel)
-        self.clusterstub = rpc.ClusterStub(self.channel)
-        self.leasestub = rpc.LeaseStub(self.channel)
-        self.maintenancestub = rpc.MaintenanceStub(self.channel)
-
-        # Initialize a watcher
-        self._watcher = watcher.Watcher(
-            rpc.WatchStub(self.channel),
-            timeout=self._timeout,
-            metadata=self.metadata,
-        )
-        self._connected.set()
-        self._is_connecting = False
+            self._connected.set()
+        finally:
+            self._is_connecting = False
 
     async def close(self) -> None:
         """Close established connection and frees allocated resources.
 
-        NOTE: It could be called while other operation is being executed.
-              At that time, the executing operation will be broken.
+        It could be called while other operation is being executed.
         """
         if not self._connected.is_set() and self._is_connecting:
-            # Halt at self.auth_stub.Authenticate() in connect()
-            # Wait for connect() is done
-            await self._connected.wait()
+            # Wait for the previous request to complete
+            await asyncio.wait_for(
+                self._connected.wait(),
+                self._connect_wait_timeout,
+            )
 
         if self.channel:
             # Shutdown the watcher
@@ -213,9 +226,12 @@ class Client:
                 await self._watcher.shutdown()
 
             # Close the underlying RPC channel
-            await self.channel.close()
+            if self.channel:
+                # Check it again since it could be modified by a concurrent task
+                await self.channel.close()
 
             self._init_channel_attrs()
+
         self._connected.clear()
 
     async def __aenter__(self):
