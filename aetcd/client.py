@@ -14,6 +14,9 @@ from . import utils
 from . import watcher
 
 
+MAX_COUNT_TO_WAIT_CONNECT_CHECK = 3
+
+
 def _handle_errors(f):
     if inspect.iscoroutinefunction(f):
 
@@ -122,6 +125,10 @@ class Client:
     :param dict options:
         Options provided to the underlying gRPC channel.
 
+    :param int connection_check_timeout:
+        Waiting timeout to check connection, since connection() could be called
+        from multiple tasks.
+
     :return:
         A :class:`~aetcd.client.Client` instance.
     """
@@ -134,6 +141,7 @@ class Client:
         password: typing.Optional[str] = None,
         timeout: typing.Optional[int] = None,
         options: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        connection_check_timeout: int = 3,
     ):
         self._host = host
         self._port = port
@@ -141,6 +149,7 @@ class Client:
         self._password = password
         self._timeout = timeout
         self._options = options or {}
+        self._connection_check_timeout = connection_check_timeout
         self._connected = asyncio.Event()
         self._on_connecting = False
 
@@ -169,42 +178,55 @@ class Client:
     @_handle_errors
     async def connect(self) -> None:
         """Establish a connection to an etcd."""
-        if self._connected.is_set():
-            return
+        for _ in range(MAX_COUNT_TO_WAIT_CONNECT_CHECK):
+            if self._connected.is_set():
+                return
 
-        if self._on_connecting:
-            # Another task is establishing a connection. Just wait.
-            await self._connected.wait()
-            return
+            try:
+                if self._on_connecting:
+                    # Another task is establishing a connection. Just wait.
+                    await asyncio.wait_for(
+                        self._connected.wait(),
+                        self._connection_check_timeout,
+                    )
+                    return
+                break
+            except asyncio.TimeoutError:
+                # Another task fails to connect. Try again
+                continue
+        else:
+            raise asyncio.TimeoutError()
 
-        self._on_connecting = True
-        target = f'{self._host}:{self._port}'
-        self.channel = rpc.insecure_channel(target, options=self._options.items())
+        try:
+            self._on_connecting = True
+            target = f'{self._host}:{self._port}'
+            self.channel = rpc.insecure_channel(target, options=self._options.items())
 
-        cred_params = [c is not None for c in (self._username, self._password)]
-        if all(cred_params):
-            self.auth_stub = rpc.AuthStub(self.channel)
-            auth_request = rpc.AuthenticateRequest(
-                name=self._username,
-                password=self._password,
+            cred_params = [c is not None for c in (self._username, self._password)]
+            if all(cred_params):
+                self.auth_stub = rpc.AuthStub(self.channel)
+                auth_request = rpc.AuthenticateRequest(
+                    name=self._username,
+                    password=self._password,
+                )
+
+                resp = await self.auth_stub.Authenticate(auth_request, timeout=self._timeout)
+                self.metadata = (('token', resp.token),)
+
+            self.kvstub = rpc.KVStub(self.channel)
+            self.clusterstub = rpc.ClusterStub(self.channel)
+            self.leasestub = rpc.LeaseStub(self.channel)
+            self.maintenancestub = rpc.MaintenanceStub(self.channel)
+
+            # Initialize a watcher
+            self._watcher = watcher.Watcher(
+                rpc.WatchStub(self.channel),
+                timeout=self._timeout,
+                metadata=self.metadata,
             )
-
-            resp = await self.auth_stub.Authenticate(auth_request, timeout=self._timeout)
-            self.metadata = (('token', resp.token),)
-
-        self.kvstub = rpc.KVStub(self.channel)
-        self.clusterstub = rpc.ClusterStub(self.channel)
-        self.leasestub = rpc.LeaseStub(self.channel)
-        self.maintenancestub = rpc.MaintenanceStub(self.channel)
-
-        # Initialize a watcher
-        self._watcher = watcher.Watcher(
-            rpc.WatchStub(self.channel),
-            timeout=self._timeout,
-            metadata=self.metadata,
-        )
-        self._connected.set()
-        self._on_connecting = False
+            self._connected.set()
+        finally:
+            self._on_connecting = False
 
     async def close(self) -> None:
         """Close established connection and frees allocated resources.
@@ -212,10 +234,22 @@ class Client:
         NOTE: It could be called while other operation is being executed.
               At that time, the executing operation will be broken.
         """
-        if not self._connected.is_set() and self._on_connecting:
-            # Halt at self.auth_stub.Authenticate() in connect()
-            # Wait for connect() is done
-            await self._connected.wait()
+        for _ in range(MAX_COUNT_TO_WAIT_CONNECT_CHECK):
+            if not self._connected.is_set() and self._on_connecting:
+                # connect() is waiting for the response of Authenticate() in
+                # another task.
+                # Wait for connect() is done to keep consistency
+                try:
+                    await asyncio.wait_for(
+                        self._connected.wait(),
+                        self._connection_check_timeout,
+                    )
+                except asyncio.TimeoutError:
+                    # Another task fails to connect. Check again
+                    continue
+            break
+        else:
+            raise asyncio.TimeoutError()
 
         if self.channel:
             # Shutdown the watcher
@@ -223,7 +257,9 @@ class Client:
                 await self._watcher.shutdown()
 
             # Close the underlying RPC channel
-            await self.channel.close()
+            if self.channel:
+                # Check it again since it could be none by another task
+                await self.channel.close()
 
             self._init_channel_attrs()
         self._connected.clear()
