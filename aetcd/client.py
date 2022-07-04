@@ -273,6 +273,20 @@ class Client:
 
     @_handle_errors
     @_ensure_connected
+    async def reset_auth_token(self)
+        cred_params = [c is not None for c in (self._username, self._password)]
+        if all(cred_params):
+            auth_request = rpc.AuthenticateRequest(
+                name=self._username,
+                password=self._password,
+            )
+            resp = await self.auth_stub.Authenticate(auth_request, timeout=self._timeout)
+            metadata = (('token', resp.token),)
+            self.metadata = metadata
+            self._watcher._metadata = metadata
+
+    @_handle_errors
+    @_ensure_connected
     async def get(
         self,
         key: bytes,
