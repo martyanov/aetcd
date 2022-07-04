@@ -273,7 +273,7 @@ class Client:
 
     @_handle_errors
     @_ensure_connected
-    async def reset_auth_token(self)
+    async def reset_auth_token(self) -> None:
         cred_params = [c is not None for c in (self._username, self._password)]
         if all(cred_params):
             auth_request = rpc.AuthenticateRequest(
