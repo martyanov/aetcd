@@ -21,6 +21,10 @@ class InvalidArgumentError(ClientError):
     """Raises on errors associated with incorrect arguments being provided."""
 
 
+class UnauthenticatedError(ClientError):
+    """Raises on etcd unauthenticated errors."""
+
+
 class PreconditionFailedError(ClientError):
     """Raises on etcd server precondition errors."""
 
@@ -52,6 +56,7 @@ _EXCEPTIONS_BY_CODE = {
     rpc.StatusCode.INTERNAL: InternalError,
     rpc.StatusCode.INVALID_ARGUMENT: InvalidArgumentError,
     rpc.StatusCode.UNAVAILABLE: ConnectionFailedError,
+    rpc.StatusCode.UNAUTHENTICATED: UnauthenticatedError,
 }
 
 
