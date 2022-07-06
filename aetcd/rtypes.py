@@ -9,10 +9,11 @@ class _Slotted:
     __slots__ = []
 
     def __repr__(self):
-        return f'{self.__class__.__name__}[' + ', '.join(
-            f'{attr}={getattr(self, attr)}'
-            for attr in self.__slots__
-        ) + ']'
+        return (
+            f'{self.__class__.__name__}['
+            + ', '.join(f'{attr}={getattr(self, attr)}' for attr in self.__slots__)
+            + ']'
+        )
 
 
 class ResponseHeader(_Slotted):
@@ -227,10 +228,7 @@ class DeleteRange:
         return KeyValue(self.prev_kvs[index])
 
     def __repr__(self):
-        return (
-            f'{self.__class__.__name__}'
-            f'[header={self.header!r}, deleted={self.deleted!r}]'
-        )
+        return f'{self.__class__.__name__}' f'[header={self.header!r}, deleted={self.deleted!r}]'
 
 
 class EventKind(str, enum.Enum):
@@ -254,8 +252,7 @@ class Event(_Slotted):
         #: The kind of event. If the type is a ``PUT``, it indicates
         #: new data has been stored to the key. If the type is a ``DELETE``,
         #: it indicates the key was deleted.
-        self.kind: EventKind = rpc.Event.EventType.DESCRIPTOR.values_by_number[
-            kind].name
+        self.kind: EventKind = rpc.Event.EventType.DESCRIPTOR.values_by_number[kind].name
 
         #: Holds the key-value for the event.
         #: A ``PUT`` event contains current key-value pair.
@@ -294,9 +291,8 @@ class Watch:
         #: The ID of the watcher that emits the events.
         self.watch_id: int = watch_id
 
-    async def __aiter__(self):
-        async for event in self._iterator():
-            yield event
+    def __aiter__(self):
+        return self._iterator()
 
     async def cancel(self):
         """Cancel the watcher so that no more events are emitted."""
