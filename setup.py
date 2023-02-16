@@ -61,8 +61,8 @@ setuptools.setup(
             'twine==4.0.2',
         ],
         'doc': [
-            'sphinx==4.3.2',
-            'sphinx_rtd_theme==1.0.0',
+            'sphinx==6.1.3',
+            'sphinx_rtd_theme==1.2.0',
         ],
         'test': [
             'pifpaf==3.1.5',
