@@ -67,7 +67,7 @@ setuptools.setup(
         'test': [
             'pifpaf==3.1.5',
             'pytest-asyncio==0.20.3',
-            'pytest-cov==3.0.0',
+            'pytest-cov==4.0.0',
             'pytest-mock==3.6.1',
             'pytest==7.2.1',
         ],
