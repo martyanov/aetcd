@@ -22,7 +22,7 @@ help:
 bootstrap: $(VENV)/bin/activate
 $(VENV)/bin/activate:
 	$(PYTHON_BIN) -m venv $(VENV)
-	$(PYTHON) -m pip install pip==21.3.1 setuptools==60.1.0 wheel==0.37.1
+	$(PYTHON) -m pip install pip==23.0 setuptools==67.3.2 wheel==0.38.4
 	$(PYTHON) -m pip install -e .[dev,doc,test]
 
 build: bootstrap
