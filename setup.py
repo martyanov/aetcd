@@ -52,12 +52,12 @@ setuptools.setup(
     extras_require={
         'dev': [
             'flake8-commas==2.1.0',
-            'flake8-docstrings==1.6.0',
-            'flake8-isort==4.1.1',
-            'flake8-quotes==3.3.1',
-            'flake8==4.0.1',
+            'flake8-docstrings==1.7.0',
+            'flake8-isort==6.0.0',
+            'flake8-quotes==3.3.2',
+            'flake8==6.0.0',
             'grpcio-tools==1.43.0',
-            'pep8-naming==0.12.1',
+            'pep8-naming==0.13.3',
             'twine==4.0.2',
         ],
         'doc': [
