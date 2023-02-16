@@ -46,8 +46,8 @@ setuptools.setup(
         'setuptools_scm==6.3.2',
     ],
     install_requires=[
-        'grpcio>1.41,<2',
-        'protobuf>3,<4',
+        'grpcio>1.51,<2',
+        'protobuf>4,<5',
     ],
     extras_require={
         'dev': [
@@ -56,7 +56,7 @@ setuptools.setup(
             'flake8-isort==6.0.0',
             'flake8-quotes==3.3.2',
             'flake8==6.0.0',
-            'grpcio-tools==1.43.0',
+            'grpcio-tools==1.51.1',
             'pep8-naming==0.13.3',
             'twine==4.0.2',
         ],
