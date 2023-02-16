@@ -58,7 +58,7 @@ setuptools.setup(
             'flake8==4.0.1',
             'grpcio-tools==1.43.0',
             'pep8-naming==0.12.1',
-            'twine==3.7.1',
+            'twine==4.0.2',
         ],
         'doc': [
             'sphinx==4.3.2',
