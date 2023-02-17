@@ -1,9 +1,9 @@
 .DEFAULT: help
 .PHONY: bootstrap build clean help genproto lint outdated test testcluster testreport upload
 
-VENV = .venv
-PYTHON_BIN ?= python3
-PYTHON = $(VENV)/bin/$(PYTHON_BIN)
+VENV=.venv
+PYTHON_BIN?=python3
+PYTHON=$(VENV)/bin/$(PYTHON_BIN)
 
 help:
 	@echo "Please use \`$(MAKE) <target>' where <target> is one of the following:"
