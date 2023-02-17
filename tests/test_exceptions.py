@@ -49,6 +49,11 @@ def test__handle_exception_with_known_rpc_errors(rpc_error):
     with pytest.raises(aetcd.exceptions.ConnectionFailedError):
         aetcd.exceptions._handle_exception(error)
 
+    error = rpc_error(aetcd.rpc.StatusCode.UNAUTHENTICATED)
+
+    with pytest.raises(aetcd.exceptions.UnauthenticatedError):
+        aetcd.exceptions._handle_exception(error)
+
 
 def test__handle_exception_with_unknown_rpc_errors(rpc_error):
     error = rpc_error(aetcd.rpc.StatusCode.DATA_LOSS, 'disk failure')
