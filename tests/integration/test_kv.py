@@ -13,7 +13,7 @@ import aetcd.rpc
 
 @contextlib.contextmanager
 def _out_quorum():
-    pids = subprocess.check_output(['pgrep', '-f', '--', '--name pifpaf[12]'])
+    pids = subprocess.check_output(['pgrep', '-f', '--', 'pifpaf[12]'])
     pids = [int(pid.strip()) for pid in pids.splitlines()]
     try:
         for pid in pids:
