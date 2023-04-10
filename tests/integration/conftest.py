@@ -1,7 +1,8 @@
+import asyncio
+import asyncio.subprocess
 import contextlib
 import json
 import os
-import subprocess
 import urllib.parse
 
 import pytest
@@ -15,16 +16,35 @@ def setup():
 
 
 @pytest.fixture(scope='session')
+@pytest.mark.asyncio
 def etcdctl():
-    def _etcdctl(*args, ignore_result=False):
+    async def _etcdctl(*args, ignore_result=False):
         endpoint = os.environ.get('TEST_ETCD_HTTP_URL')
         if endpoint:
             args = ['--endpoints', endpoint] + list(args)
         args = ['etcdctl', '-w', 'json'] + list(args)
-        output = subprocess.check_output(args)
+
+        proc = await asyncio.create_subprocess_exec(
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(),
+                timeout=15,
+            )
+        except asyncio.TimeoutError:
+            raise Exception(f'Timeout during awaiting process with args {args!r}')
+
+        if proc.returncode != 0:
+            raise Exception(f'Error during awaiting process with args {args!r}: {stderr}')
+
         if ignore_result:
             return None
-        return json.loads(output.decode('utf-8'))
+
+        return json.loads(stdout.decode('utf-8'))
     return _etcdctl
 
 
@@ -58,8 +78,8 @@ async def client(etcdctl):
         ) as client:
             yield client
 
-        etcdctl('del', '--prefix', '')
-        result = etcdctl('get', '--prefix', '')
+        await etcdctl('del', '--prefix', '')
+        result = await etcdctl('get', '--prefix', '')
         assert 'kvs' not in result
 
     return _client

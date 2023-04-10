@@ -4,6 +4,15 @@ import aetcd
 import aetcd.rpc
 
 
+def pytest_addoption(parser):
+    parser.addoption(
+        '--with-cluster',
+        action='store_true',
+        default=False,
+        help='Run tests with ETCD cluster',
+    )
+
+
 @pytest.fixture
 async def etcd():
     # TODO: Rewrite the mock and related tests without side-effects

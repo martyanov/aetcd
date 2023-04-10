@@ -82,4 +82,4 @@ async def test_snapshot(etcdctl, etcd):
         await etcd.snapshot(f)
         f.flush()
 
-        etcdctl('snapshot', 'status', f.name)
+        await etcdctl('snapshot', 'status', f.name)

@@ -3,16 +3,17 @@ import pytest
 import aetcd
 
 
+@pytest.mark.asyncio
 @pytest.fixture
-def etcd_auth(etcdctl):
-    etcdctl('user', 'add', 'root:pwd')
-    etcdctl('auth', 'enable', ignore_result=True)
+async def etcd_auth(etcdctl):
+    await etcdctl('user', 'add', 'root:pwd')
+    await etcdctl('auth', 'enable', ignore_result=True)
 
     yield
 
-    etcdctl('--user', 'root:pwd', 'auth', 'disable', ignore_result=True)
-    etcdctl('role', 'delete', 'root')
-    etcdctl('user', 'delete', 'root')
+    await etcdctl('--user', 'root:pwd', 'auth', 'disable', ignore_result=True)
+    await etcdctl('role', 'delete', 'root')
+    await etcdctl('user', 'delete', 'root')
 
 
 @pytest.mark.asyncio
