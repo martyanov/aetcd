@@ -21,7 +21,7 @@ def etcdctl():
         if endpoint:
             args = ['--endpoints', endpoint] + list(args)
         args = ['etcdctl', '-w', 'json'] + list(args)
-        output = subprocess.check_output(args)
+        output = subprocess.check_output(args, timeout=5)
         if ignore_result:
             return None
         return json.loads(output.decode('utf-8'))
