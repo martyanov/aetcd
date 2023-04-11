@@ -9,8 +9,8 @@ on:
     branches: ['master']
 
   schedule:
-    # Daily at 4 AM UTC
-    - cron: '0 4 * * *'
+    # Every hour
+    - cron: '0 * * * *'
 
 jobs:
   lint:
