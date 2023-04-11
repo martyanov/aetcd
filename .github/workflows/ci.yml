@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        etcd: ['3.3.27']
+        etcd: ['3.3.27', '3.4.23', '3.5.7']
         os: ['ubuntu-20.04']
         python: ['3.8', '3.9', '3.10', '3.11']
     steps:
