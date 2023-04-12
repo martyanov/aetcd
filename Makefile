@@ -44,7 +44,7 @@ test: bootstrap
 	$(PYTHON) -m pytest
 
 testcluster: bootstrap
-	$(PYTHON) -m pifpaf -e TEST --debug run etcd --cluster -- $(PYTHON) -m pytest --timeout=60 --cov-report=xml
+	$(PYTHON) -m pifpaf -e TEST --debug run etcd --cluster -- $(PYTHON) -m pytest --with-cluster --cov-report=xml
 
 testreport: bootstrap
 	$(PYTHON) -m pytest --cov-report=html
