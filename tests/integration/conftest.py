@@ -30,13 +30,7 @@ def etcdctl():
             stderr=asyncio.subprocess.PIPE,
         )
 
-        try:
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(),
-                timeout=15,
-            )
-        except asyncio.TimeoutError:
-            raise Exception(f'Timeout during awaiting process with args {args!r}')
+        stdout, stderr = await proc.communicate()
 
         if proc.returncode != 0:
             raise Exception(f'Error during awaiting process with args {args!r}: {stderr}')

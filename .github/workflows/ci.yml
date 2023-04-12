@@ -62,6 +62,7 @@ jobs:
         run: make bootstrap
 
       - name: Run tests on Python ${{ matrix.python }}
+        timeout-minutes: 10
         run: make testcluster
 
       - name: Run genproto
