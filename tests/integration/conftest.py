@@ -68,7 +68,11 @@ async def client(etcdctl):
             username=username,
             password=password,
             timeout=timeout,
-            options=options,
+            options={
+                'keepalive_time_ms': 6000,
+                'keepalive_permit_without_calls': True,
+                'http2_max_pings_without_data': 0,
+            },
         ) as client:
             yield client
 
