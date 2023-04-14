@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import contextlib
 import os
@@ -307,6 +308,22 @@ async def test_replace_success(etcd):
     result = await etcd.get(b'/key')
     assert result.value == b'value2'
     assert status is True
+
+
+@pytest.mark.asyncio
+async def test_replace_with_lease_success(etcd):
+    lease = await etcd.lease(ttl=3)
+    await etcd.put(b'/test_key', b'value1')
+    status = await etcd.replace(b'/test_key', b'value1', b'value2', lease=lease)
+    result = await etcd.get(b'/test_key')
+    assert result.value == b'value2'
+    assert status is True
+
+    # Wait for the lease to expire
+    await asyncio.sleep((await lease.granted_ttl()) + 1)
+
+    result = await etcd.get(b'/test_key')
+    assert result is None
 
 
 @pytest.mark.asyncio

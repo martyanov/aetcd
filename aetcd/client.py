@@ -571,7 +571,13 @@ class Client:
             delete_response.prev_kvs,
         )
 
-    async def replace(self, key, initial_value, new_value):
+    async def replace(
+        self,
+        key: bytes,
+        initial_value: bytes,
+        new_value: bytes,
+        lease: typing.Optional[typing.Union[int, leases.Lease]] = None,
+    ):
         """Atomically replace the value of a key with a new value.
 
         This compares the current value of a key, then replaces it with a new
@@ -587,6 +593,11 @@ class Client:
         :param bytes new_value:
             New value of the key
 
+        :param lease:
+            Lease to associate with this key.
+        :type lease:
+            either :class:`~aetcd.leases.Lease`, or ``int`` (ID of a lease), or ``None``
+
         :return:
             A status of transaction, ``True`` if the replace was successful,
             ``False`` otherwise.
@@ -596,7 +607,7 @@ class Client:
                 self.transactions.value(key) == initial_value,
             ],
             success=[
-                self.transactions.put(key, new_value),
+                self.transactions.put(key, new_value, lease=lease),
             ],
             failure=[],
         )
