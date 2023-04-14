@@ -5,6 +5,7 @@ from .client import Transactions  # noqa: F401
 from .exceptions import ClientError  # noqa: F401
 from .exceptions import ConnectionFailedError  # noqa: F401
 from .exceptions import ConnectionTimeoutError  # noqa: F401
+from .exceptions import DuplicateLeaseError  # noqa: F401
 from .exceptions import InternalError  # noqa: F401
 from .exceptions import InvalidArgumentError  # noqa: F401
 from .exceptions import PreconditionFailedError  # noqa: F401

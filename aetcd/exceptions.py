@@ -29,6 +29,10 @@ class PreconditionFailedError(ClientError):
     """Raises on etcd server precondition errors."""
 
 
+class DuplicateLeaseError(ClientError):
+    """Raised on attempt to create lease with already existing id."""
+
+
 class RevisionCompactedError(ClientError):
     """Raises when requested and previous revisions were already compacted."""
 
@@ -68,9 +72,13 @@ def _handle_exception(error: Exception):
     # Query RPC error mapping and raise one of the matched client errors
     if isinstance(error, rpc.AioRpcError):
         e = _EXCEPTIONS_BY_CODE.get(error.code())
+        error_details = error.details()
+
         if e is not None:
-            raise e(error.details()) from error
-        raise ClientError(error.details()) from error
+            if e is PreconditionFailedError and 'lease already exists' in error_details:
+                raise DuplicateLeaseError
+            raise e(error_details) from error
+        raise ClientError(error_details) from error
 
     # Fallback to wrap original error with the client error
     raise ClientError(error)

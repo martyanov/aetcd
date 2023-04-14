@@ -67,3 +67,23 @@ def test__handle_exception_with_unknown_errors(rpc_error):
 
     with pytest.raises(aetcd.exceptions.ClientError, match='unknown error'):
         aetcd.exceptions._handle_exception(error)
+
+
+def test__handle_exception_with_duplicate_lease_error(rpc_error):
+    error = rpc_error(
+        code=aetcd.rpc.StatusCode.FAILED_PRECONDITION,
+        details='etcdserver: lease already exists',
+    )
+
+    with pytest.raises(aetcd.exceptions.DuplicateLeaseError):
+        aetcd.exceptions._handle_exception(error)
+
+
+def test__handle_exception_with_duplicate_lease_error_and_internal_rpc_error(rpc_error):
+    error = rpc_error(
+        code=aetcd.rpc.StatusCode.INTERNAL,
+        details='etcdserver: lease already exists',
+    )
+
+    with pytest.raises(aetcd.exceptions.InternalError):
+        aetcd.exceptions._handle_exception(error)
