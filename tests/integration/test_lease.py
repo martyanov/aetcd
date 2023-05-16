@@ -2,6 +2,8 @@ import asyncio
 
 import pytest
 
+import aetcd.exceptions
+
 
 @pytest.mark.asyncio
 async def test_lease_grant(etcd):
@@ -44,3 +46,11 @@ async def test_lease_expire(etcd):
     await asyncio.sleep((await lease.granted_ttl()) + 1)
     result = await etcd.get(key)
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_lease_create_with_already_existing_id(etcd):
+    await etcd.lease(10, lease_id=123)
+
+    with pytest.raises(aetcd.exceptions.DuplicateLeaseError):
+        await etcd.lease(15, lease_id=123)
