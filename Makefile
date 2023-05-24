@@ -24,6 +24,7 @@ $(VENV)/bin/activate:
 	$(PYTHON_BIN) -m venv $(VENV)
 	$(PYTHON) -m pip install pip==23.0 setuptools==67.3.2 wheel==0.38.4
 	$(PYTHON) -m pip install -e .[dev,doc,test]
+	$(PYTHON) -m pip install 'pifpaf @ git+https://github.com/jd/pifpaf.git@80cc13bd7e4b0cb286d15659c9fe7958e8600cd9#egg=aetcd'
 
 build: bootstrap
 	$(PYTHON) setup.py sdist bdist_wheel

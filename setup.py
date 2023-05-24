@@ -66,7 +66,6 @@ setuptools.setup(
             'sphinx_rtd_theme==1.2.0',
         ],
         'test': [
-            'pifpaf @ git+https://github.com/jd/pifpaf.git@80cc13bd7e4b0cb286d15659c9fe7958e8600cd9#egg=aetcd',
             'pytest-asyncio==0.20.3',
             'pytest-cov==4.0.0',
             'pytest-mock==3.10.0',
