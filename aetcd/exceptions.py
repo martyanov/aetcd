@@ -30,7 +30,7 @@ class PreconditionFailedError(ClientError):
 
 
 class DuplicateLeaseError(ClientError):
-    """Raised on attempt to create lease with already existing id."""
+    """Raises on attempt to create a lease with already existing ID."""
 
 
 class RevisionCompactedError(ClientError):
