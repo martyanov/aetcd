@@ -2,6 +2,42 @@
 Changelog
 =========
 
+1.0.0a3 (2023-05-24)
+--------------------
+
+Improvements
+^^^^^^^^^^^^
+
+* Use monotonic timer in locks implementation
+* Limit client connect and close waiting time
+* Support lease in replace operation (#21)
+* Replace sync subprocess call with async version (#25)
+* Add UnauthenticatedError
+* Add Python 3.11 support
+* Add duplicate lease exception (#22)
+* Add 3.4 and 3.5 ETCD versions to CI matrix (#26)
+* Set timeout for tests job on CI (#27)
+* Add keepalive ETCD client settings in integration tests (#28)
+* Fix test for serializable read
+
+Bugfixes
+^^^^^^^^
+
+* Fix Connect and Watch iterator
+
+Dependencies
+^^^^^^^^^^^^
+
+* Bump packaging dependencies: pip 23.0, setuptools 67.3.2, wheel 0.38.4
+* Bump twine to 4.0.2
+* Bump flake8 to 6.0.0 and update related plugins
+* Bump pytest-asyncio to 0.20.3
+* Bump pytest to 7.2.1
+* Bump pytest-cov to 4.0.0
+* Bump pytest-mock to 3.10.0
+* Bump sphinx to 6.1.3 and sphinx_rtd_theme to 1.2.0
+* Bump grpcio to 1.51.1 and protobuf to 4+
+
 1.0.0a2 (2022-01-14)
 --------------------
 
