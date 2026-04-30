@@ -8,7 +8,7 @@ PYTHON=$(VENV)/bin/$(PYTHON_BIN)
 help:
 	@echo "Please use \`$(MAKE) <target>' where <target> is one of the following:"
 	@echo "  help        - show help information"
-	@echo "  bootstrap  - setup packaging dependencies and initialize venv"
+	@echo "  bootstrap   - setup packaging dependencies and initialize venv"
 	@echo "  build       - build project packages"
 	@echo "  genproto    - process .proto files and generate gRPC stubs"
 	@echo "  lint        - inspect project source code for errors"
@@ -22,9 +22,9 @@ help:
 bootstrap: $(VENV)/bin/activate
 $(VENV)/bin/activate:
 	$(PYTHON_BIN) -m venv $(VENV)
-	$(PYTHON) -m pip install pip==23.0 setuptools==67.3.2 wheel==0.38.4
+	$(PYTHON) -m pip install pip==26.1 setuptools==82.0.1 wheel==0.47.0
 	$(PYTHON) -m pip install -e .[dev,doc,test]
-	$(PYTHON) -m pip install 'pifpaf @ git+https://github.com/jd/pifpaf.git@80cc13bd7e4b0cb286d15659c9fe7958e8600cd9#egg=aetcd'
+	$(PYTHON) -m pip install 'pifpaf @ git+https://github.com/jd/pifpaf.git@18e693f5b86f9fd12fd2eaba35822af04c1f85ae#egg=aetcd'
 
 build: bootstrap
 	$(PYTHON) setup.py sdist bdist_wheel
@@ -45,7 +45,7 @@ test: bootstrap
 	$(PYTHON) -m pytest
 
 testcluster: bootstrap
-	$(PYTHON) -m pifpaf -e TEST --debug run etcd --cluster -- $(PYTHON) -m pytest --with-cluster --cov-report=xml
+	$(PYTHON) -m pifpaf -e TEST run etcd --cluster -- $(PYTHON) -m pytest --with-cluster --cov-report=xml
 
 testreport: bootstrap
 	$(PYTHON) -m pytest --cov-report=html

@@ -16,7 +16,6 @@ def setup():
 
 
 @pytest.fixture(scope='session')
-@pytest.mark.asyncio
 def etcdctl():
     async def _etcdctl(*args, ignore_result=False):
         endpoint = os.environ.get('TEST_ETCD_HTTP_URL')

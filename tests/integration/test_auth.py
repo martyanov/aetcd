@@ -3,7 +3,6 @@ import pytest
 import aetcd
 
 
-@pytest.mark.asyncio
 @pytest.fixture
 async def etcd_auth(etcdctl):
     await etcdctl('user', 'add', 'root:pwd')
