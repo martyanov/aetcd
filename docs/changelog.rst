@@ -2,6 +2,13 @@
 Changelog
 =========
 
+1.0.0rc1 (2026-04-30)
+---------------------
+
+* Add support for Python up to 3.14
+* Compile proto files with a bit relaxed compatibility
+* Fix obsolete RTD configuration
+
 1.0.0a4 (2023-05-24)
 --------------------
 
