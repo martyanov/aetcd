@@ -1,13 +1,13 @@
 Python asyncio-based client for etcd
 ====================================
 
-.. image:: https://github.com/martyanov/aetcd/workflows/build/badge.svg?branch=master
+.. image:: https://github.com/martyanov/aetcd/actions/workflows/ci.yml/badge.svg
    :alt: Build Status
-   :target: https://github.com/martyanov/aetcd/actions
+   :target: https://github.com/martyanov/aetcd/actions/workflows/ci.yml
 
-.. image:: https://codecov.io/gh/martyanov/aetcd/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/martyanov/aetcd/graph/badge.svg
    :alt: Coverage report
-   :target: https://codecov.io/gh/martyanov/aetcd/branch/master
+   :target: https://codecov.io/gh/martyanov/aetcd
 
 .. image:: https://img.shields.io/badge/docs-aetcd.rtfd.io-green.svg
    :alt: Documentation
