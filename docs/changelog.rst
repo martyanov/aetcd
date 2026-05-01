@@ -2,6 +2,12 @@
 Changelog
 =========
 
+1.0.0rc2 (2026-05-01)
+---------------------
+
+* Move the packaging machinery to pyproject.toml
+* Use a modern way of building packages
+
 1.0.0rc1 (2026-04-30)
 ---------------------
 
