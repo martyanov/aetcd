@@ -33,7 +33,7 @@ authors = [
 requires-python = ">=3.10,<4"
 dependencies = [
     "grpcio>1.66.0,<2",
-    "protobuf>4,<7",
+    "protobuf>4,<8",
 ]
 dynamic = ["version"]
 
