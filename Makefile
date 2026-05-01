@@ -23,7 +23,7 @@ bootstrap: $(VENV)/bin/activate
 $(VENV)/bin/activate:
 	$(PYTHON_BIN) -m venv $(VENV)
 	$(PYTHON) -m pip install build==1.5.0 pip==26.1 setuptools==82.0.1 wheel==0.47.0
-	$(PYTHON) -m pip install -e .[dev,doc,test]
+	$(PYTHON) -m pip install -e .[dev,docs,test]
 	$(PYTHON) -m pip install 'pifpaf @ git+https://github.com/jd/pifpaf.git@18e693f5b86f9fd12fd2eaba35822af04c1f85ae#egg=aetcd'
 
 build: bootstrap

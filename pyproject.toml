@@ -1,0 +1,115 @@
+[build-system]
+requires = [
+    "setuptools-scm[toml]==10.0.5",
+    "setuptools==82.0.1",
+    "wheel==0.47.0",
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["aetcd"]
+
+[project]
+name = "aetcd"
+description = "Python asyncio-based client for etcd"
+readme = "README.rst"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+keywords = ["etcd", "asyncio", "client"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Database",
+]
+authors = [
+    {name = "Andrey Martyanov", email = "andrey@martyanov.com"},
+]
+requires-python = ">=3.10,<4"
+dependencies = [
+    "grpcio>1.66.0,<2",
+    "protobuf>4,<7",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+    "flake8-commas==4.0.0",
+    "flake8-docstrings==1.7.0",
+    "flake8-isort==7.0.0",
+    "flake8-pyproject==1.2.4",
+    "flake8-quotes==3.4.0",
+    "flake8==7.3.0",
+    "grpcio-tools==1.75.1",
+    "pep8-naming==0.15.1",
+    "twine==6.2.0",
+]
+docs = [
+    "sphinx==8.1.3",
+    "sphinx_rtd_theme==3.1.0",
+]
+test = [
+    "pytest-asyncio==1.3.0",
+    "pytest-cov==7.1.0",
+    "pytest-mock==3.15.1",
+    "pytest==9.0.3",
+]
+
+[project.urls]
+Documentation = "https://aetcd.readthedocs.io"
+Code = "https://github.com/martyanov/aetcd"
+Issues = "https://github.com/martyanov/aetcd/issues"
+
+[tool.setuptools_scm]
+
+[tool.flake8]
+max-line-length = 95
+max-complexity = 10
+ignore = [
+    "D1",
+]
+exclude = [
+    "aetcd/rpc",
+]
+application-import-names = [
+    "aetcd",
+]
+
+[tool.pytest.ini_options]
+addopts = "--cov=aetcd --no-cov-on-fail"
+testpaths = [
+    "aetcd",
+    "tests",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == '__main__':",
+]
+
+[tool.coverage.run]
+omit = [
+    "aetcd/rpc/*",
+]
+
+[tool.isort]
+line_length = 95
+multi_line_output = 3
+force_single_line = true
+lines_after_imports = 2
+include_trailing_comma = true
+src_paths = [
+    "aetcd",
+    "tests",
+]
+skip_glob = [
+    "aetcd/rpc/*",
+]
