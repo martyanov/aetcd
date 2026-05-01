@@ -2,6 +2,11 @@
 Changelog
 =========
 
+1.0.0rc3 (2026-05-01)
+---------------------
+
+* Relax protobuf dependency version as it passes all tests
+
 1.0.0rc2 (2026-05-01)
 ---------------------
 
