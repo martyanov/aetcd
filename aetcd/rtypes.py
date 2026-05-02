@@ -268,10 +268,15 @@ class Event(_Slotted):
 
 
 class Watch:
-    """Reperesents the result of a watch operation.
+    """Represents the result of a watch operation.
 
-    To get emitted events use as an asynchronous iterator, emitted events are
-    instances of an :class:`~aetcd.rtypes.Event`.
+    Use as an asynchronous iterator to get emitted events.
+    Events are instances of an :class:`~aetcd.rtypes.Event`.
+    Such iterator is exhausted either when undelying :class:`~aetcd.client.Client`
+    is closed or cancel method is called on this instance.
+
+    Instance must not be used after underlying :class:`~aetcd.client.Client`
+    is closed, and doing so will raise RuntimeError.
 
     Usage example:
 
